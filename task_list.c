@@ -30,7 +30,7 @@ void tl_add(struct task *new_task, struct task_list *lst)
 {
     struct tl_item *tmp;
     tmp = malloc(sizeof(struct tl_item));
-    task_copy(&tmp->data, new_task);
+    tmp->data = *new_task;
     tmp->next = NULL;
     tmp->prev = NULL;
     if (lst->last) {

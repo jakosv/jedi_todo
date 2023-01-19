@@ -63,7 +63,7 @@ void todolist_add_task(struct task *new_task, struct todolist *lst)
         exit(1);
     }
     rec.type = rt_task;
-    task_copy(&rec.data.task, new_task);
+    rec.data.task = *new_task;
     rec.is_deleted = 0;
     db_add_record(&rec, &lst->db);
     new_task->id = rec.pos;
@@ -81,8 +81,8 @@ void todolist_set_task(task_id id, struct task *new_task,
     }
     rec.pos = id;
     old_task = tl_get_by_id(id, &lst->tasks);
-    task_copy(old_task, new_task);
-    task_copy(&rec.data.task, new_task);
+    *old_task = *new_task;
+    rec.data.task = *new_task;
     rec.is_deleted = 0;
     db_update_record(&rec, &lst->db);
 }

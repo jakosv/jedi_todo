@@ -176,7 +176,7 @@ int db_fetch_all_records(struct record **records, unsigned size,
     }
     for (i = 0, num = 0; i < db->records_count; i++) {
         if (!all_records[i].is_deleted) {
-            record_copy(*records + num, &all_records[i]);
+            (*records)[num] = all_records[i];
             num++;
             if (num >= size)
                 break;

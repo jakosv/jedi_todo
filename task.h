@@ -19,6 +19,4 @@ struct task {
     char green;
 };
 
-void task_copy(struct task *dst, const struct task *src);
-
 #endif

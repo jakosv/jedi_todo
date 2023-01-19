@@ -18,6 +18,4 @@ struct record {
     char is_deleted;
 };
 
-void record_copy(struct record *dst, const struct record *src);
-
 #endif
