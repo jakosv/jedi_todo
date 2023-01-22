@@ -21,8 +21,7 @@ static void fetch_database_records(struct todolist *lst)
     for (i = 0; i < records_cnt; i++) {
         switch (records[i].type) {
         case rt_task:
-            records[i].data.task.id = records[i].pos;
-            tl_add(&records[i].data.task, &lst->tasks);
+            tl_add(i, &records[i].data.task, &lst->tasks);
             break;
         case rt_project:
             break;
@@ -44,20 +43,23 @@ void todolist_init(struct todolist *lst)
     fetch_database_records(lst);
 }
 
-void todolist_destroy(struct todolist *lst)
+void todolist_free(struct todolist *lst)
 {
     if (!lst) {
         fprintf(stderr, "lodolist_destroy(): passed NULL");
         exit(1);
     }
     db_close(&lst->db);
-    tl_destroy(&lst->tasks);
+    tl_clear(&lst->tasks);
 }
 
+
+/*===== tasks functions =====*/
 
 void todolist_add_task(struct task *new_task, struct todolist *lst)
 {
     struct record rec;
+    record_pos new_task_id;
     if (!lst) {
         fprintf(stderr, "lodolist_add_task(): passed NULL");
         exit(1);
@@ -65,48 +67,70 @@ void todolist_add_task(struct task *new_task, struct todolist *lst)
     rec.type = rt_task;
     rec.data.task = *new_task;
     rec.is_deleted = 0;
-    db_add_record(&rec, &lst->db);
-    new_task->id = rec.pos;
-    tl_add(new_task, &lst->tasks);
+    new_task_id = db_add_record(&rec, &lst->db);
+    tl_add(new_task_id, new_task, &lst->tasks);
 }
 
 void todolist_set_task(task_id id, struct task *new_task, 
                                                     struct todolist *lst)
 {
     struct record rec;
-    struct task *old_task;
+    struct tl_item *task_item;
     if (!lst) {
         fprintf(stderr, "lodolist_set_task(): passed NULL");
         exit(1);
     }
-    rec.pos = id;
-    old_task = tl_get_by_id(id, &lst->tasks);
-    *old_task = *new_task;
+    task_item = tl_get_item(id, &lst->tasks);
+    task_item->data = *new_task;
     rec.data.task = *new_task;
     rec.is_deleted = 0;
-    db_update_record(&rec, &lst->db);
+    db_update_record(task_item->id, &rec, &lst->db);
 }
 
 void todolist_delete_task(task_id id, struct todolist *lst)
 {
+    struct tl_item *tmp; 
     if (!lst) {
         fprintf(stderr, "lodolist_delete_task(): passed NULL");
         exit(1);
     }
-    tl_remove_by_id(id, &lst->tasks); 
-    db_delete_record(id, &lst->db);
+    tmp = tl_get_item(id, &lst->tasks); 
+    db_delete_record(tmp->id, &lst->db);
+    tl_remove(tmp, &lst->tasks); 
 }
 
-struct task *todolist_get_tasks(struct todolist *lst)
+void todolist_get_all_tasks(struct task_list *tasks, struct todolist *lst)
 {
-    if (!lst) {
-        fprintf(stderr, "lodolist_get_task(): passed NULL");
-        exit(1);
-    }
-
-    return NULL;
+    struct tl_item *tmp;
+    for (tmp = lst->tasks.first; tmp; tmp = tmp->next)
+        tl_add(tmp->id, &tmp->data, tasks);
 }
 
+void todolist_get_today_tasks(struct task_list *tasks, struct todolist *lst)
+{
+    struct tl_item *tmp;
+    for (tmp = lst->tasks.first; tmp; tmp = tmp->next)
+        if (tmp->data.folder == tf_today)
+            tl_add(tmp->id, &tmp->data, tasks);
+}
+
+void todolist_get_week_tasks(struct task_list *tasks, struct todolist *lst)
+{
+
+}
+
+void todolist_get_green_tasks(struct task_list *tasks, struct todolist *lst)
+{
+
+}
+
+void todolist_get_done_tasks(struct task_list *tasks, struct todolist *lst)
+{
+
+}
+
+
+/*===== projects functions =====*/
 
 void todolist_add_project(struct project *new_project, 
                                                     struct todolist *lst)
@@ -115,7 +139,6 @@ void todolist_add_project(struct project *new_project,
         fprintf(stderr, "lodolist_add_project(): passed NULL");
         exit(1);
     }
-
 }
 
 void todolist_set_project(project_id id, struct project *new_project, 
@@ -125,7 +148,6 @@ void todolist_set_project(project_id id, struct project *new_project,
         fprintf(stderr, "lodolist_set_project(): passed NULL");
         exit(1);
     }
-
 }
 
 void todolist_delete_project(project_id id, struct todolist *lst)
@@ -144,4 +166,3 @@ struct project *todolist_get_projects(struct todolist *lst)
     }
     return NULL;
 }
-

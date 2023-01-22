@@ -2,8 +2,12 @@
 #define TASK_LIST_H_SENTRY
 
 #include "task.h"
+#include "record.h"
+
+typedef record_pos task_id;
 
 struct tl_item {
+    task_id id;
     struct task data;
     struct tl_item *next, *prev;
 };
@@ -13,10 +17,10 @@ struct task_list {
 };
 
 void tl_init(struct task_list *lst);
-void tl_destroy(struct task_list *lst);
-void tl_add(struct task *new_task, struct task_list *lst);
-struct task *tl_get_by_id(task_id id, struct task_list *lst); 
-int tl_remove(unsigned pos, struct task_list *lst);
-int tl_remove_by_id(task_id id, struct task_list *lst);
+void tl_clear(struct task_list *lst);
+void tl_add(task_id id, struct task *new_task, struct task_list *lst);
+struct tl_item *tl_get_item(unsigned pos, const struct task_list *lst); 
+struct task *tl_get_task(unsigned pos, const struct task_list *lst); 
+int tl_remove(struct tl_item *item, struct task_list *lst);
 
 #endif

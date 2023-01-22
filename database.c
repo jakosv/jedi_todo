@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum { max_deleted_part = 3 };
-
 static void count_file_records(unsigned *records_count, 
                                     unsigned *deleted_count, FILE *file)
 {
@@ -53,10 +51,8 @@ int db_open(const char *path, struct database *db)
 static void write_records_array(struct record *records, unsigned num, 
                                                                 FILE* file)
 {
-    long bytes_count, i;
+    long bytes_count;
     bytes_count = num * sizeof(struct record);
-    for (i = 0; i < num; i++)
-        records[i].pos = i;
     fwrite(records, 1, bytes_count, file); 
     if (ferror(file)) {
         perror("write_records_array()");
@@ -66,7 +62,7 @@ static void write_records_array(struct record *records, unsigned num,
 
 void db_close(struct database *db)
 {
-    if (db->deleted_count * max_deleted_part >= db->records_count) {
+    if (db->deleted_count > 0) {
         struct record *records;
         unsigned records_count;
         records_count = db->records_count - db->deleted_count;
@@ -81,10 +77,11 @@ void db_close(struct database *db)
     db->deleted_count = 0;
 }
 
-static void write_record(struct record *new_record, FILE *file)
+static void write_record(record_pos pos, struct record *new_record, 
+                                                                FILE *file)
 {
     long bytes_offset;
-    bytes_offset = new_record->pos * sizeof(struct record);
+    bytes_offset = pos * sizeof(struct record);
     fseek(file, bytes_offset, SEEK_SET);
     fwrite(new_record, 1, sizeof(struct record), file);
     if (ferror(file)) {
@@ -110,24 +107,27 @@ unsigned db_count_records(struct database *db)
     return (db->records_count - db->deleted_count);
 }
 
-void db_add_record(struct record *new_record, struct database *db)
+record_pos db_add_record(struct record *new_record, struct database *db)
 {
+    record_pos pos;
     if (!db) {
         fprintf(stderr, "add_record(): passed NULL database");
         exit(1);
     }
-    new_record->pos = db->records_count;
-    write_record(new_record, db->file);
+    pos = db->records_count;
+    write_record(pos, new_record, db->file);
     db->records_count++;
+    return pos;
 }
 
-void db_update_record(struct record *updated_record, struct database *db)
+void db_update_record(record_pos pos, struct record *updated_record, 
+                                                    struct database *db)
 {
     if (!db) {
         fprintf(stderr, "update_record(): passed NULL database");
         exit(1);
     }
-    write_record(updated_record, db->file);
+    write_record(pos, updated_record, db->file);
 }
 
 void db_fetch_record(record_pos pos, struct record *rec, struct database *db)
@@ -151,7 +151,7 @@ void db_delete_record(record_pos pos, struct database *db)
     if (rec->is_deleted)
         return;
     rec->is_deleted = 1;
-    write_record(rec, db->file); 
+    write_record(pos, rec, db->file); 
     free(rec);
     db->deleted_count++;
 }

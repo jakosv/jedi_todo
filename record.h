@@ -9,7 +9,6 @@ typedef unsigned record_pos;
 enum record_type { rt_task, rt_project };
 
 struct record {
-    record_pos pos;
     enum record_type type;
     union {
         struct task task;
