@@ -116,7 +116,10 @@ void storage_get_today_tasks(struct task_list *tasks, struct storage *st)
 
 void storage_get_week_tasks(struct task_list *tasks, struct storage *st)
 {
-
+    struct tl_item *tmp;
+    for (tmp = st->tasks.first; tmp; tmp = tmp->next)
+        if (tmp->data.folder == tf_week || tmp->data.folder == tf_today)
+            tl_add(tmp->id, &tmp->data, tasks);
 }
 
 void storage_get_green_tasks(struct task_list *tasks, struct storage *st)

@@ -27,6 +27,52 @@ static void show_list(const struct todolist *list)
         show_task_list(&list->tasks);
 }
 
+static void update_todolist_view(enum view_state view, 
+                                                struct todolist *list)
+{
+    tl_clear(&list->tasks);
+    list->view = view;
+    switch (view) {
+    case view_today_tasks:
+        storage_get_today_tasks(&list->tasks, &list->storage);
+        break;
+    case view_all_tasks:
+        storage_get_all_tasks(&list->tasks, &list->storage);
+        break;
+    case view_week_tasks:
+        storage_get_week_tasks(&list->tasks, &list->storage);
+        break;
+    default:
+        storage_get_all_tasks(&list->tasks, &list->storage);
+    }
+}
+
+void add_task(const char *name, struct todolist *list)
+{
+    struct task new_task;
+    enum task_folder folder;
+    switch (list->view) {
+    case view_today_tasks:
+        folder = tf_today;
+        break;
+    case view_all_tasks:
+        folder = tf_none;
+        break;
+    case view_week_tasks:
+        folder = tf_week;
+        break;
+    case view_project_tasks:
+        folder = tf_none;
+        break;
+    default:
+        folder = tf_none;
+        break;
+    }
+    task_create(name, folder, &new_task);
+    storage_add_task(&new_task, &list->storage);
+    update_todolist_view(list->view, list);
+}
+
 static void get_command(char *cmd, int len)
 {
     int c, i;
@@ -89,16 +135,16 @@ void todolist_main_loop(struct todolist *list)
 
         switch (params[0][0]) {
         case 'a':
+            add_task(params[1], list);
             break;
         case 't':
-            list->view = view_today_tasks;
-            tl_clear(&list->tasks);
-            storage_get_today_tasks(&list->tasks, &list->storage);
+            update_todolist_view(view_today_tasks, list);
             break;
         case 'l':
-            list->view = view_all_tasks;
-            tl_clear(&list->tasks);
-            storage_get_all_tasks(&list->tasks, &list->storage);
+            update_todolist_view(view_all_tasks, list);
+            break;
+        case 'w':
+            update_todolist_view(view_week_tasks, list);
             break;
         default:
             break;
