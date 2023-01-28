@@ -47,7 +47,7 @@ static void update_todolist_view(enum view_state view,
     }
 }
 
-void add_task(const char *name, struct todolist *list)
+static void add_task(const char *name, struct todolist *list)
 {
     struct task new_task;
     enum task_folder folder;
@@ -73,7 +73,15 @@ void add_task(const char *name, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
-static void get_command(char *cmd, int len)
+static void remove_task(int pos, struct todolist *list)
+{
+    task_id id;
+    id = tl_get_item(pos - 1, &list->tasks)->id;
+    storage_delete_task(id, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
+static void read_command(char *cmd, int len)
 {
     int c, i;
     i = 0;
@@ -86,56 +94,73 @@ static void get_command(char *cmd, int len)
     cmd[i] = '\0';
 }
 
-static void parse_command(const char *cmd, char **params, int size,
-                                                        int *params_cnt)
+static void parse_command(const char *cmd, int count, char **params, 
+                                                        int *parse_cnt)
 {
     int i, param_len, cmd_len;
     char *param;
     cmd_len = strlen(cmd);
     param = malloc(cmd_len + 1);
     param_len = 0;
-    *params_cnt = 0;
+    *parse_cnt = 0;
     for (i = 0; cmd[i]; i++) {
-        if (*params_cnt >= size)
-            break;
-        if (cmd[i] == ' ' && param_len > 0) {
+        if (*parse_cnt < (count - 1) && cmd[i] == ' ' && param_len > 0) {
             param[param_len] = '\0';
-            strlcpy(params[*params_cnt], param, param_len + 1);
-            (*params_cnt)++;
+            strlcpy(params[*parse_cnt], param, param_len + 1);
+            (*parse_cnt)++;
             param_len = 0;
-        } else if (cmd[i] != ' ') {
+        } else {
             param[param_len] = cmd[i];
             param_len++;
         }
     }
-    if (param_len > 0) {
+    if (*parse_cnt < count && param_len > 0) {
         param[param_len] = '\0';
-        strlcpy(params[*params_cnt], param, param_len + 1);
-        (*params_cnt)++;
+        strlcpy(params[*parse_cnt], param, param_len + 1);
+        (*parse_cnt)++;
     }
     free(param);
 }
 
 void todolist_main_loop(struct todolist *list)
 {
-    enum { max_cmd_len = 200, max_params_cnt = 10 };
+    enum {
+        max_cmd_len = 200, 
+        max_params_cnt = 10,  
+        add_params_cnt = 2,
+        remove_params_cnt = 2,
+        rename_params_cnt = 3,
+        move_params_cnt = 3 
+    };
     char cmd[max_cmd_len];
     char *params[max_params_cnt];
-    int params_cnt, i;
+    int parse_cnt, i;
     for (i = 0; i < max_params_cnt; i++)
         params[i] = malloc(max_cmd_len);
     do {
         show_list(list);
         
-        get_command(cmd, max_cmd_len);
-        parse_command(cmd, params, max_params_cnt, &params_cnt); 
+        read_command(cmd, max_cmd_len);
+        /*
         printf("Params count: %d\n", params_cnt);
         for (i = 0; i < params_cnt; i++)
             printf("Param [%d]: '%s'\n", i, params[i]);
+            */
 
-        switch (params[0][0]) {
+        switch (cmd[0]) {
         case 'a':
-            add_task(params[1], list);
+            parse_command(cmd, add_params_cnt, params, &parse_cnt); 
+            if (parse_cnt >= add_params_cnt)
+                add_task(params[1], list);
+            break;
+        case 'r':
+            parse_command(cmd, remove_params_cnt, params, &parse_cnt); 
+            if (parse_cnt >= remove_params_cnt) {
+                int pos; 
+                char *end;
+                pos = strtol(params[1], &end, 10);
+                remove_task(pos, list);
+            }
             break;
         case 't':
             update_todolist_view(view_today_tasks, list);
@@ -149,7 +174,7 @@ void todolist_main_loop(struct todolist *list)
         default:
             break;
         }
-    } while (params[0][0] != 'q');
+    } while (cmd[0] != 'q');
 
     for (i = 0; i < max_params_cnt; i++)
         free(params[i]);

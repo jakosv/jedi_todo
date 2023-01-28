@@ -21,9 +21,10 @@ static void print_task(const struct task *task)
 void show_task_list(const struct task_list *lst)
 {
     struct tl_item *tmp;
+    task_id pos;
     puts("========");
-    for (tmp = lst->first; tmp; tmp = tmp->next) {
-        printf("[%d] ", tmp->id);
+    for (tmp = lst->first, pos = 1; tmp; tmp = tmp->next, pos++) {
+        printf("[%d] ", pos);
         print_task(&tmp->data);
     }
     puts("========");

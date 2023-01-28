@@ -102,24 +102,27 @@ void storage_delete_task(task_id id, struct storage *st)
 void storage_get_all_tasks(struct task_list *tasks, struct storage *st)
 {
     struct tl_item *tmp;
-    for (tmp = st->tasks.first; tmp; tmp = tmp->next)
-        tl_add(tmp->id, &tmp->data, tasks);
+    task_id pos;
+    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
+        tl_add(pos, &tmp->data, tasks);
 }
 
 void storage_get_today_tasks(struct task_list *tasks, struct storage *st)
 {
     struct tl_item *tmp;
-    for (tmp = st->tasks.first; tmp; tmp = tmp->next)
+    task_id pos;
+    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
         if (tmp->data.folder == tf_today)
-            tl_add(tmp->id, &tmp->data, tasks);
+            tl_add(pos, &tmp->data, tasks);
 }
 
 void storage_get_week_tasks(struct task_list *tasks, struct storage *st)
 {
     struct tl_item *tmp;
-    for (tmp = st->tasks.first; tmp; tmp = tmp->next)
+    task_id pos;
+    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
         if (tmp->data.folder == tf_week || tmp->data.folder == tf_today)
-            tl_add(tmp->id, &tmp->data, tasks);
+            tl_add(pos, &tmp->data, tasks);
 }
 
 void storage_get_green_tasks(struct task_list *tasks, struct storage *st)
