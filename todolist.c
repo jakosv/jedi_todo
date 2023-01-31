@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 enum {
     max_cmd_len = 200, 
@@ -130,6 +131,42 @@ static void done_task(int pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
+static void move_task_to_project(int pos, project_id pid, 
+                                            struct todolist *list)
+{
+    struct tl_item *task_item;
+    struct task new_task;
+    task_item = tl_get_item(pos - 1, &list->tasks);
+    new_task = task_item->data;
+    new_task.has_project = 1;
+    new_task.pid = pid;
+    storage_set_task(task_item->id, &new_task, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
+static void move_task_to_folder(int pos, char to, struct todolist *list)
+{
+    struct tl_item *task_item;
+    struct task new_task;
+    task_item = tl_get_item(pos - 1, &list->tasks);
+    new_task = task_item->data;
+    switch (to) {
+    case 't':
+        new_task.folder = tf_today;
+        break;
+    case 'w':
+        new_task.folder = tf_week;
+        break;
+    case 'n':
+        new_task.folder = tf_none;
+        break;
+    default:
+        return;
+    }
+    storage_set_task(task_item->id, &new_task, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
 static void read_command(char *cmd, int len)
 {
     int c, i;
@@ -241,6 +278,27 @@ static void command_done(const char *cmd, struct todolist *list)
     params_array_free(params, done_params_cnt);
 }
 
+static void command_move(const char *cmd, struct todolist *list) 
+{
+    char *params[move_params_cnt];
+    int parse_cnt;
+    params_array_init(params, move_params_cnt);
+    parse_command(cmd, move_params_cnt, params, &parse_cnt); 
+    if (parse_cnt >= move_params_cnt) {
+        int pos; 
+        char *end;
+        pos = strtol(params[1], &end, 10);
+        if (isdigit(params[2][0])) {
+            project_id proj_id;
+            proj_id = strtol(params[2], &end, 10);
+            move_task_to_project(pos, proj_id, list);
+        } else {
+            move_task_to_folder(pos, params[2][0], list);
+        }
+    }
+    params_array_free(params, move_params_cnt);
+}
+
 void todolist_main_loop(struct todolist *list)
 {
     char cmd[max_cmd_len];
@@ -266,6 +324,9 @@ void todolist_main_loop(struct todolist *list)
             break;
         case 'n':
             command_rename(cmd, list);
+            break;
+        case 'm':
+            command_move(cmd, list);
             break;
         case 't':
             update_todolist_view(view_today_tasks, list);

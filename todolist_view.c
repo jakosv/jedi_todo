@@ -17,7 +17,7 @@ static void print_task(const struct task *task)
     default:
         break;
     }
-    printf("\n");
+    putchar('\n');
 }
 
 void show_task_list(const struct task_list *lst, const char *name)
