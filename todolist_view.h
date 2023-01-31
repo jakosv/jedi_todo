@@ -14,6 +14,6 @@ enum view_state {
     view_project_tasks
 };
 
-void show_task_list(const struct task_list *lst);
+void show_task_list(const struct task_list *lst, const char *name);
 
 #endif

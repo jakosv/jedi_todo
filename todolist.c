@@ -32,8 +32,22 @@ void todolist_destroy(struct todolist *list)
 
 static void show_list(const struct todolist *list)
 {
-    if (list->view < view_projects)
-        show_task_list(&list->tasks);
+    switch (list->view) {
+    case view_today_tasks:
+        show_task_list(&list->tasks, "Today");
+        break;
+    case view_all_tasks:
+        show_task_list(&list->tasks, "All");
+        break;
+    case view_week_tasks:
+        show_task_list(&list->tasks, "Week");
+        break;
+    case view_completed_tasks:
+        show_task_list(&list->tasks, "Completed");
+        break;
+    default:
+        show_task_list(&list->tasks, "All");
+    }
 }
 
 static void update_todolist_view(enum view_state view, 
