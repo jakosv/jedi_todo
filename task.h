@@ -17,6 +17,7 @@ struct task {
     char done;
 };
 
+void task_init(struct task *new_task);
 void task_create(const char *name, enum task_folder folder,
                                                 struct task *new_task);
 

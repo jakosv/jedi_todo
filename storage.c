@@ -30,7 +30,7 @@ static void fetch_database_records(struct storage *st)
     free(records);
 }
 
-void storage_open(struct storage *st)
+void storage_init(struct storage *st)
 {
     int ok;
     if (!st) {
@@ -43,7 +43,7 @@ void storage_open(struct storage *st)
     fetch_database_records(st);
 }
 
-void storage_close(struct storage *st)
+void storage_free(struct storage *st)
 {
     if (!st) {
         fprintf(stderr, "lodolist_destroy(): passed NULL");
@@ -82,8 +82,8 @@ void storage_set_task(task_id id, struct task *new_task,
     }
     task_item = tl_get_item(id, &st->tasks);
     task_item->data = *new_task;
+    db_fetch_record(task_item->id, &rec, &st->db);
     rec.data.task = *new_task;
-    rec.is_deleted = 0;
     db_update_record(task_item->id, &rec, &st->db);
 }
 
@@ -104,7 +104,8 @@ void storage_get_all_tasks(struct task_list *tasks, struct storage *st)
     struct tl_item *tmp;
     task_id pos;
     for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        tl_add(pos, &tmp->data, tasks);
+        if (!tmp->data.done)
+            tl_add(pos, &tmp->data, tasks);
 }
 
 void storage_get_today_tasks(struct task_list *tasks, struct storage *st)
@@ -112,7 +113,7 @@ void storage_get_today_tasks(struct task_list *tasks, struct storage *st)
     struct tl_item *tmp;
     task_id pos;
     for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (tmp->data.folder == tf_today)
+        if (!tmp->data.done && tmp->data.folder == tf_today)
             tl_add(pos, &tmp->data, tasks);
 }
 
@@ -121,18 +122,25 @@ void storage_get_week_tasks(struct task_list *tasks, struct storage *st)
     struct tl_item *tmp;
     task_id pos;
     for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (tmp->data.folder == tf_week || tmp->data.folder == tf_today)
+        if (!tmp->data.done && 
+            (tmp->data.folder == tf_week || tmp->data.folder == tf_today))
+        {
             tl_add(pos, &tmp->data, tasks);
+        }
 }
 
 void storage_get_green_tasks(struct task_list *tasks, struct storage *st)
 {
-
 }
 
-void storage_get_done_tasks(struct task_list *tasks, struct storage *st)
+void storage_get_completed_tasks(struct task_list *tasks, 
+                                                    struct storage *st)
 {
-
+    struct tl_item *tmp;
+    task_id pos;
+    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
+        if (tmp->data.done)
+            tl_add(pos, &tmp->data, tasks);
 }
 
 

@@ -9,6 +9,7 @@ enum view_state {
     view_today_tasks, 
     view_all_tasks, 
     view_week_tasks,
+    view_completed_tasks,
     view_projects,
     view_project_tasks
 };

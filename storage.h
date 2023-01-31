@@ -12,8 +12,8 @@ struct storage {
     struct project *projects;
 };
 
-void storage_open(struct storage *st);
-void storage_close(struct storage *st);
+void storage_init(struct storage *st);
+void storage_free(struct storage *st);
 
 /*===== tasks functions =====*/
 void storage_add_task(struct task *new_task, struct storage *st);
@@ -28,7 +28,7 @@ void storage_get_week_tasks(struct task_list *tasks,
                                                 struct storage *st);
 void storage_get_green_tasks(struct task_list *tasks, 
                                                 struct storage *st);
-void storage_get_done_tasks(struct task_list *tasks, 
+void storage_get_completed_tasks(struct task_list *tasks, 
                                                 struct storage *st);
 
 /*===== projects functions =====*/

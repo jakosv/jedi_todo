@@ -17,4 +17,6 @@ struct record {
     char is_deleted;
 };
 
+void record_init(struct record *rec);
+
 #endif
