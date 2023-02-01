@@ -1,6 +1,7 @@
 #include "storage.h"
 #include "database.h"
 #include "task_list.h"
+#include "project_list.h"
 #include "record.h"
 #include "task.h"
 #include "project.h"
@@ -13,17 +14,19 @@ static const char *database_path = "todolist.db";
 static void fetch_database_records(struct storage *st)
 {
     struct record *records;
-    unsigned records_cnt, i;
+    unsigned records_cnt, id;
     records_cnt = db_count_records(&st->db); 
     records = malloc(records_cnt * sizeof(struct record));
     db_fetch_all_records(&records, records_cnt, &st->db);
     tl_init(&st->tasks);
-    for (i = 0; i < records_cnt; i++) {
-        switch (records[i].type) {
+    pl_init(&st->projects);
+    for (id = 0; id < records_cnt; id++) {
+        switch (records[id].type) {
         case rt_task:
-            tl_add(i, &records[i].data.task, &st->tasks);
+            tl_add(id, &records[id].data.task, &st->tasks);
             break;
         case rt_project:
+            pl_add(id, &records[id].data.project, &st->projects);
             break;
         }
     }
@@ -51,6 +54,7 @@ void storage_free(struct storage *st)
     }
     db_close(&st->db);
     tl_clear(&st->tasks);
+    pl_clear(&st->projects);
 }
 
 
@@ -172,11 +176,11 @@ void storage_delete_project(project_id id, struct storage *st)
     }
 }
 
-struct project *storage_get_projects(struct storage *st)
+void storage_get_all_projects(struct project_list *projects, 
+                                                struct storage *st)
 {
     if (!st) {
         fprintf(stderr, "lodolist_get_projects(): passed NULL");
         exit(1);
     }
-    return NULL;
 }

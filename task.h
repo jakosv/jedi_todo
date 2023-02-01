@@ -10,7 +10,7 @@ struct task {
     char name[max_task_name_len];
     char has_project;
     project_id pid;
-    unsigned date;
+    unsigned creation_date;
     char repeat_days[7];
     enum task_folder folder; 
     char green;

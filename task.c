@@ -8,7 +8,7 @@ void task_init(struct task *new_task)
     memset(new_task->name, 0, max_task_name_len); 
     new_task->has_project = 0;
     new_task->pid = 0;
-    new_task->date = 0;
+    new_task->creation_date = 0;
     for (i = 0; i < 7; i++)
         new_task->repeat_days[i] = 0;
     new_task->folder = tf_none;
