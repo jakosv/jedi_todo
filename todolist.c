@@ -213,6 +213,21 @@ static void swap_tasks(int pos, int new_pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
+static void swap_projects(int pos, int new_pos, struct todolist *list)
+{
+    struct pl_item *first_project_item, *second_project_item;
+    struct project first_project, second_project;
+    first_project_item = pl_get_item(pos - 1, &list->projects);
+    second_project_item = pl_get_item(new_pos - 1, &list->projects);
+    first_project = first_project_item->data;
+    second_project = second_project_item->data;
+    storage_set_project(first_project_item->id, &second_project, 
+                                                        &list->storage); 
+    storage_set_project(second_project_item->id, &first_project, 
+                                                        &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
 static void read_command(char *cmd, int len)
 {
     int c, i;
@@ -365,7 +380,10 @@ static void command_swap(const char *cmd, struct todolist *list)
         if (isdigit(params[2][0])) {
             task_id new_pos;
             new_pos = strtol(params[2], &end, 10);
-            swap_tasks(pos, new_pos, list);
+            if (list->view == view_projects)
+                swap_projects(pos, new_pos, list);
+            else
+                swap_tasks(pos, new_pos, list);
         }
     }
     params_array_free(params, move_params_cnt);
