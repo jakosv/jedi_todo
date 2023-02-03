@@ -126,6 +126,14 @@ static void remove_task(int pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
+static void remove_project(int pos, struct todolist *list)
+{
+    project_id id;
+    id = pl_get_item(pos - 1, &list->projects)->id;
+    storage_delete_project(id, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
 static void rename_task(int pos, const char *name, 
                                             struct todolist *list)
 {
@@ -285,7 +293,10 @@ static void command_remove(const char *cmd, struct todolist *list)
         int pos; 
         char *end;
         pos = strtol(params[1], &end, 10);
-        remove_task(pos, list);
+        if (list->view == view_projects)
+            remove_project(pos, list);
+        else
+            remove_task(pos, list);
     }
     params_array_free(params, remove_params_cnt);
 }
