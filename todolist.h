@@ -9,7 +9,7 @@ struct todolist {
     struct storage storage;
     enum view_state view;
     struct task_list tasks;
-    /* struct project_list cur_projects */
+    struct project_list projects;
 };
 
 void todolist_init(struct todolist *list);

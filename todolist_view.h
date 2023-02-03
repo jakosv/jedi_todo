@@ -2,6 +2,7 @@
 #define TODOLIST_VIEW_H_SENTRY
 
 #include "task_list.h"
+#include "project_list.h"
 
 #include <stdio.h>
 
@@ -15,5 +16,6 @@ enum view_state {
 };
 
 void show_task_list(const struct task_list *lst, const char *name);
+void show_project_list(const struct project_list *lst);
 
 #endif

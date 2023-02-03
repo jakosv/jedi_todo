@@ -19,7 +19,7 @@ void todolist_init(struct todolist *list)
 {
     storage_init(&list->storage); 
     tl_init(&list->tasks);
-    /* pl_init(&list-projects); */
+    pl_init(&list->projects);
     storage_get_all_tasks(&list->tasks, &list->storage);
     list->view = view_all_tasks;
 }
@@ -28,7 +28,7 @@ void todolist_destroy(struct todolist *list)
 {
     storage_free(&list->storage); 
     tl_clear(&list->tasks);
-    /*pl_clear(&app->cur_list)*/
+    pl_clear(&list->projects);
 }
 
 static void show_list(const struct todolist *list)
@@ -46,6 +46,9 @@ static void show_list(const struct todolist *list)
     case view_completed_tasks:
         show_task_list(&list->tasks, "Completed");
         break;
+    case view_projects:
+        show_project_list(&list->projects);
+        break;
     default:
         show_task_list(&list->tasks, "All");
     }
@@ -54,20 +57,27 @@ static void show_list(const struct todolist *list)
 static void update_todolist_view(enum view_state view, 
                                                 struct todolist *list)
 {
-    tl_clear(&list->tasks);
     list->view = view;
     switch (view) {
     case view_today_tasks:
+        tl_clear(&list->tasks);
         storage_get_today_tasks(&list->tasks, &list->storage);
         break;
     case view_all_tasks:
+        tl_clear(&list->tasks);
         storage_get_all_tasks(&list->tasks, &list->storage);
         break;
     case view_week_tasks:
+        tl_clear(&list->tasks);
         storage_get_week_tasks(&list->tasks, &list->storage);
         break;
     case view_completed_tasks:
+        tl_clear(&list->tasks);
         storage_get_completed_tasks(&list->tasks, &list->storage);
+        break;
+    case view_projects:
+        pl_clear(&list->projects);
+        storage_get_all_projects(&list->projects, &list->storage);
         break;
     default:
         storage_get_all_tasks(&list->tasks, &list->storage);
@@ -97,6 +107,14 @@ static void add_task(const char *name, struct todolist *list)
     }
     task_create(name, folder, &new_task);
     storage_add_task(&new_task, &list->storage);
+    update_todolist_view(list->view, list);
+}
+
+static void add_project(const char *name, struct todolist *list)
+{
+    struct project new_project;
+    project_create(name, &new_project);
+    storage_add_project(&new_project, &list->storage);
     update_todolist_view(list->view, list);
 }
 
@@ -248,8 +266,12 @@ static void command_add(const char *cmd, struct todolist *list)
     int parse_cnt;
     params_array_init(params, add_params_cnt);
     parse_command(cmd, add_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= add_params_cnt)
-        add_task(params[1], list);
+    if (parse_cnt >= add_params_cnt) {
+        if (list->view == view_projects)
+            add_project(params[1], list);
+        else
+            add_task(params[1], list);
+    }
     params_array_free(params, add_params_cnt);
 }
 
@@ -381,6 +403,9 @@ void todolist_main_loop(struct todolist *list)
             break;
         case 'c':
             update_todolist_view(view_completed_tasks, list);
+            break;
+        case 'p':
+            update_todolist_view(view_projects, list);
             break;
         default:
             break;

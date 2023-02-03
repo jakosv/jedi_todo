@@ -26,7 +26,8 @@ void pl_clear(struct project_list *lst)
     lst->last = NULL;
 }
 
-void pl_add(project_id id, struct project *new_project, struct project_list *lst)
+void pl_add(project_id id, struct project *new_project, 
+                                            struct project_list *lst)
 {
     struct pl_item *tmp;
     tmp = malloc(sizeof(struct pl_item));

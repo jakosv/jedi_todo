@@ -153,34 +153,56 @@ void storage_get_completed_tasks(struct task_list *tasks,
 void storage_add_project(struct project *new_project, 
                                                     struct storage *st)
 {
+    struct record rec;
+    record_pos new_project_id;
     if (!st) {
         fprintf(stderr, "lodolist_add_project(): passed NULL");
         exit(1);
     }
+    rec.type = rt_project;
+    rec.data.project = *new_project;
+    rec.is_deleted = 0;
+    new_project_id = db_add_record(&rec, &st->db);
+    pl_add(new_project_id, new_project, &st->projects);
 }
 
 void storage_set_project(project_id id, struct project *new_project, 
                                                     struct storage *st)
 {
+    struct record rec;
+    struct pl_item *project_item;
     if (!st) {
         fprintf(stderr, "lodolist_set_project(): passed NULL");
         exit(1);
     }
+    project_item = pl_get_item(id, &st->projects);
+    project_item->data = *new_project;
+    db_fetch_record(project_item->id, &rec, &st->db);
+    rec.data.project = *new_project;
+    db_update_record(project_item->id, &rec, &st->db);
 }
 
 void storage_delete_project(project_id id, struct storage *st)
 {
+    struct pl_item *tmp; 
     if (!st) {
         fprintf(stderr, "lodolist_delete_project(): passed NULL");
         exit(1);
     }
+    tmp = pl_get_item(id, &st->projects); 
+    db_delete_record(tmp->id, &st->db);
+    pl_remove(tmp, &st->projects); 
 }
 
 void storage_get_all_projects(struct project_list *projects, 
                                                 struct storage *st)
 {
+    struct pl_item *tmp;
+    project_id pos;
     if (!st) {
         fprintf(stderr, "lodolist_get_projects(): passed NULL");
         exit(1);
     }
+    for (tmp = st->projects.first, pos = 0; tmp; tmp = tmp->next, pos++)
+        pl_add(pos, &tmp->data, projects);
 }

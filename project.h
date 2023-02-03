@@ -6,8 +6,7 @@ typedef unsigned project_id;
 enum { max_project_name_len = 101 };
 
 struct project {
-    project_id id;
-    char name[100];
+    char name[max_project_name_len];
 };
 
 void project_init(struct project *new_project);
