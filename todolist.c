@@ -1,5 +1,7 @@
 #include "todolist.h"
 #include "todolist_view.h"
+#include "task.h"
+#include "project.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +14,8 @@ enum {
     remove_params_cnt = 2,
     rename_params_cnt = 3,
     done_params_cnt = 2,
-    move_params_cnt = 3 
+    move_params_cnt = 3,
+    show_project_params_cnt = 2
 };
 
 void todolist_init(struct todolist *list)
@@ -21,6 +24,7 @@ void todolist_init(struct todolist *list)
     tl_init(&list->tasks);
     pl_init(&list->projects);
     storage_get_all_tasks(&list->tasks, &list->storage);
+    storage_get_all_projects(&list->projects, &list->storage);
     list->view = view_all_tasks;
 }
 
@@ -33,6 +37,7 @@ void todolist_destroy(struct todolist *list)
 
 static void show_list(const struct todolist *list)
 {
+    char *project_name;
     switch (list->view) {
     case view_today_tasks:
         show_task_list(&list->tasks, "Today");
@@ -49,6 +54,11 @@ static void show_list(const struct todolist *list)
     case view_projects:
         show_project_list(&list->projects);
         break;
+    case view_project_tasks:
+        project_name = 
+            pl_get_item(list->cur_project, &list->projects)->data.name;
+        show_task_list(&list->tasks, project_name);
+        break;
     default:
         show_task_list(&list->tasks, "All");
     }
@@ -57,6 +67,7 @@ static void show_list(const struct todolist *list)
 static void update_todolist_view(enum view_state view, 
                                                 struct todolist *list)
 {
+    project_id pid;
     list->view = view;
     switch (view) {
     case view_today_tasks:
@@ -79,6 +90,11 @@ static void update_todolist_view(enum view_state view,
         pl_clear(&list->projects);
         storage_get_all_projects(&list->projects, &list->storage);
         break;
+    case view_project_tasks:
+        pid = pl_get_item(list->cur_project, &list->projects)->id;
+        tl_clear(&list->tasks); 
+        storage_get_project_tasks(pid, &list->tasks, &list->storage);
+        break;
     default:
         storage_get_all_tasks(&list->tasks, &list->storage);
     }
@@ -99,6 +115,8 @@ static void add_task(const char *name, struct todolist *list)
         folder = tf_week;
         break;
     case view_project_tasks:
+        new_task.has_project = 1;
+        new_task.pid = pl_get_item(list->cur_project, &list->projects)->id;
         folder = tf_none;
         break;
     default:
@@ -124,6 +142,22 @@ static void remove_task(int pos, struct todolist *list)
     id = tl_get_item(pos - 1, &list->tasks)->id;
     storage_delete_task(id, &list->storage); 
     update_todolist_view(list->view, list);
+}
+
+static void remove_tasks_from_project(int pos, struct todolist *list)
+{
+    project_id id;
+    struct task_list project_tasks;
+    struct tl_item *tmp;
+    id = pl_get_item(pos - 1, &list->projects)->id;
+    tl_init(&project_tasks);
+    storage_get_project_tasks(id, &project_tasks, &list->storage); 
+    tmp = project_tasks.first;
+    while (tmp) {
+        tmp->data.has_project = 0;
+        storage_set_task(tmp->id, &tmp->data, &list->storage);
+        tmp = tmp->next;
+    }
 }
 
 static void remove_project(int pos, struct todolist *list)
@@ -157,22 +191,19 @@ static void done_task(int pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
-static int project_exists(project_id pid)
-{
-    return 0;
-}
-
-static void move_task_to_project(int pos, project_id pid, 
+static void move_task_to_project(int pos, project_id project_pos, 
                                             struct todolist *list)
 {
     struct tl_item *task_item;
+    struct pl_item *project_item;
     struct task new_task;
-    if (!project_exists(pid))
+    project_item = pl_get_item(project_pos - 1, &list->projects);
+    if (!project_item)
         return;
     task_item = tl_get_item(pos - 1, &list->tasks);
     new_task = task_item->data;
     new_task.has_project = 1;
-    new_task.pid = pid;
+    new_task.pid = project_item->id;
     storage_set_task(task_item->id, &new_task, &list->storage); 
     update_todolist_view(list->view, list);
 }
@@ -308,10 +339,12 @@ static void command_remove(const char *cmd, struct todolist *list)
         int pos; 
         char *end;
         pos = strtol(params[1], &end, 10);
-        if (list->view == view_projects)
+        if (list->view == view_projects) {
+            remove_tasks_from_project(pos, list);
             remove_project(pos, list);
-        else
+        } else {
             remove_task(pos, list);
+        }
     }
     params_array_free(params, remove_params_cnt);
 }
@@ -389,6 +422,26 @@ static void command_swap(const char *cmd, struct todolist *list)
     params_array_free(params, move_params_cnt);
 }
 
+static void command_show_project(const char *cmd, struct todolist *list)
+{
+    char *params[show_project_params_cnt];
+    int parse_cnt;
+    params_array_init(params, show_project_params_cnt);
+    parse_command(cmd, show_project_params_cnt, params, &parse_cnt); 
+    if (parse_cnt >= show_project_params_cnt) {
+        if (isdigit(params[1][0])) {
+            int pos; 
+            char *end;
+            pos = strtol(params[1], &end, 10);
+            list->cur_project = pos - 1;
+            update_todolist_view(view_project_tasks, list);
+        }
+    } else {
+        update_todolist_view(view_projects, list);
+    }
+    params_array_free(params, show_project_params_cnt);
+} 
+
 void todolist_main_loop(struct todolist *list)
 {
     char cmd[max_cmd_len];
@@ -434,7 +487,7 @@ void todolist_main_loop(struct todolist *list)
             update_todolist_view(view_completed_tasks, list);
             break;
         case 'p':
-            update_todolist_view(view_projects, list);
+            command_show_project(cmd, list);
             break;
         default:
             break;

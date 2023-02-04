@@ -40,5 +40,7 @@ void storage_set_project(project_id id, struct project *new_project,
 void storage_delete_project(project_id id, struct storage *st);
 void storage_get_all_projects(struct project_list *projects, 
                                                 struct storage *st);
+void storage_get_project_tasks(project_id pid, struct task_list *tasks, 
+                                                    struct storage *st);
 
 #endif

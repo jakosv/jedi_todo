@@ -206,3 +206,17 @@ void storage_get_all_projects(struct project_list *projects,
     for (tmp = st->projects.first, pos = 0; tmp; tmp = tmp->next, pos++)
         pl_add(pos, &tmp->data, projects);
 }
+
+void storage_get_project_tasks(project_id pid, struct task_list *tasks, 
+                                                    struct storage *st)
+{
+    struct tl_item *tmp;
+    task_id pos;
+    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
+        if (!tmp->data.done && 
+            tmp->data.has_project && 
+            tmp->data.pid == pid)
+        {
+            tl_add(pos, &tmp->data, tasks);
+        }
+}

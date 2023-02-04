@@ -10,6 +10,7 @@ struct todolist {
     enum view_state view;
     struct task_list tasks;
     struct project_list projects;
+    project_id cur_project;
 };
 
 void todolist_init(struct todolist *list);
