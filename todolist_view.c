@@ -7,7 +7,7 @@
 #include <string.h>
 
 enum {
-    decor_size = 3,
+    title_size = 21,
     list_title_decor = '='
 };
 
@@ -32,23 +32,22 @@ static void print_project(const struct project *project)
     printf("%s\n", project->name);
 }
 
-static void show_list_head(const char *name)
+static void print_list_title(const char *name)
 {
-    int i;
+    int i, decor_size;
+    decor_size = (title_size - (strlen(name) + 2)) / 2;
     for (i = 0; i < decor_size; i++)
         putchar(list_title_decor);
-    putchar(' ');
-    printf("%s", name);
-    putchar(' ');
+    printf(" %s ", name);
     for (i = 0; i < decor_size; i++)
         putchar(list_title_decor);
     putchar('\n');
 }
 
-static void show_list_bottom(int size)
+static void print_list_bottom()
 {
     int i;
-    for (i = 0; i < size; i++)
+    for (i = 0; i < title_size; i++)
         putchar(list_title_decor);
     putchar('\n');
 }
@@ -56,28 +55,24 @@ static void show_list_bottom(int size)
 void show_task_list(const struct task_list *lst, const char *name)
 {
     struct tl_item *tmp;
-    int title_size;
     task_id pos;
-    title_size = strlen(name) + 2 * (decor_size + 1);
-    show_list_head(name);
+    print_list_title(name);
     for (tmp = lst->first, pos = 1; tmp; tmp = tmp->next, pos++) {
         printf("[%d] ", pos);
         print_task(&tmp->data);
     }
-    show_list_bottom(title_size);
+    print_list_bottom();
 }
 
 void show_project_list(const struct project_list *lst)
 {
     struct pl_item *tmp;
     const char *name = "Projects";
-    int title_size;
     project_id pos;
-    title_size = strlen(name) + 2 * (decor_size + 1);
-    show_list_head(name);
+    print_list_title(name);
     for (tmp = lst->first, pos = 1; tmp; tmp = tmp->next, pos++) {
         printf("[%d] ", pos);
         print_project(&tmp->data);
     }
-    show_list_bottom(title_size);
+    print_list_bottom();
 }

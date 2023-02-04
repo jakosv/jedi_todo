@@ -43,7 +43,7 @@ static void show_list(const struct todolist *list)
         show_task_list(&list->tasks, "Today");
         break;
     case view_all_tasks:
-        show_task_list(&list->tasks, "All");
+        show_task_list(&list->tasks, "All Tasks");
         break;
     case view_week_tasks:
         show_task_list(&list->tasks, "Week");

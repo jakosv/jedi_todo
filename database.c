@@ -40,7 +40,6 @@ int db_open(const char *path, struct database *db)
 {
     db->file = fopen(path, "r+b"); 
     if (!db->file) {
-        perror(path);
         return 0;
     }
     strlcpy(db->path, path, max_path_len);
@@ -88,6 +87,7 @@ static void write_record(record_pos pos, struct record *new_record,
         perror("write_record()");
         exit(1);
     }
+    fflush(file);
 }
 
 static void read_record(record_pos pos, struct record *rec, FILE *file)
