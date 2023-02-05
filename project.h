@@ -3,7 +3,9 @@
 
 typedef unsigned project_id;
 
-enum { max_project_name_len = 101 };
+enum { 
+    max_project_name_len = 101
+};
 
 struct project {
     char name[max_project_name_len];

@@ -7,7 +7,6 @@
 #include <string.h>
 
 enum {
-    start_pos = 1,
     title_size = 25,
     list_title_decor = '='
 };
@@ -90,11 +89,12 @@ static void print_list_bottom()
 void show_today_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
-    task_id pos;
+    task_id pos = list_start_pos;
     print_list_title(today_list_title);
-    for (tmp = lst->first, pos = start_pos; tmp; tmp = tmp->next, pos++) {
+    for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_today_list_task(&tmp->data);
+        pos++;
     }
     print_list_bottom();
 }
@@ -102,11 +102,12 @@ void show_today_tasks(const struct task_list *lst)
 void show_week_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
-    task_id pos;
+    task_id pos = list_start_pos;
     print_list_title(week_list_title);
-    for (tmp = lst->first, pos = start_pos; tmp; tmp = tmp->next, pos++) {
+    for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_week_list_task(&tmp->data);
+        pos++;
     }
     print_list_bottom();
 }
@@ -114,11 +115,12 @@ void show_week_tasks(const struct task_list *lst)
 void show_all_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
-    task_id pos;
+    task_id pos = list_start_pos;
     print_list_title(all_list_title);
-    for (tmp = lst->first, pos = start_pos; tmp; tmp = tmp->next, pos++) {
+    for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
+        pos++;
     }
     print_list_bottom();
 }
@@ -126,11 +128,12 @@ void show_all_tasks(const struct task_list *lst)
 void show_completed_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
-    task_id pos;
+    task_id pos = list_start_pos;
     print_list_title(completed_list_title);
-    for (tmp = lst->first, pos = start_pos; tmp; tmp = tmp->next, pos++) {
+    for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
+        pos++;
     }
     print_list_bottom();
 }
@@ -138,11 +141,12 @@ void show_completed_tasks(const struct task_list *lst)
 void show_project_tasks(const struct task_list *lst, const char *proj_name)
 {
     struct tl_item *tmp;
-    task_id pos;
+    task_id pos = list_start_pos;
     print_list_title(proj_name);
-    for (tmp = lst->first, pos = start_pos; tmp; tmp = tmp->next, pos++) {
+    for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
+        pos++;
     }
     print_list_bottom();
 }
@@ -160,13 +164,14 @@ void show_project_completed_tasks(const struct task_list *lst,
                                                     const char *proj_name)
 {
     struct tl_item *tmp;
-    task_id pos;
+    task_id pos = list_start_pos;
     char title[50 + max_project_name_len];
     gen_project_completed_title(title, sizeof(title), proj_name);
     print_list_title(title);
-    for (tmp = lst->first, pos = start_pos; tmp; tmp = tmp->next, pos++) {
+    for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
+        pos++;
     }
     print_list_bottom();
 }
@@ -174,11 +179,12 @@ void show_project_completed_tasks(const struct task_list *lst,
 void show_projects(const struct project_list *lst)
 {
     struct pl_item *tmp;
-    project_id pos;
+    task_id pos = list_start_pos;
     print_list_title(projects_list_title);
-    for (tmp = lst->first, pos = start_pos; tmp; tmp = tmp->next, pos++) {
+    for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_project(&tmp->data);
+        pos++;
     }
     print_list_bottom();
 }

@@ -193,6 +193,18 @@ static void rename_task(int pos, const char *name,
     update_todolist_view(list->view, list);
 }
 
+static void rename_project(int pos, const char *name, 
+                                            struct todolist *list)
+{
+    struct pl_item *proj_item;
+    struct project proj;
+    proj_item = pl_get_item(pos - list_start_pos, &list->projects);
+    proj = proj_item->data;
+    strlcpy(proj.name, name, max_project_name_len);
+    storage_set_project(proj_item->id, &proj, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
 static void done_task(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
@@ -372,7 +384,10 @@ static void command_rename(const char *cmd, struct todolist *list)
         int pos; 
         char *end;
         pos = strtol(params[1], &end, 10);
-        rename_task(pos, params[2], list);
+        if (list->view == view_projects)
+            rename_project(pos, params[2], list);
+        else
+            rename_task(pos, params[2], list);
     }
     params_array_free(params, rename_params_cnt);
 }

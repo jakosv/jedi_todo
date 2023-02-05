@@ -6,6 +6,8 @@
 
 #include <stdio.h>
 
+enum { list_start_pos = 1 };
+
 enum view_state { 
     view_today_tasks, 
     view_all_tasks, 
@@ -15,6 +17,7 @@ enum view_state {
     view_project_tasks,
     view_project_completed_tasks
 };
+
 
 void show_today_tasks(const struct task_list *lst);
 void show_week_tasks(const struct task_list *lst);
