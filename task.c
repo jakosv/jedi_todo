@@ -6,7 +6,7 @@ void task_init(struct task *new_task)
 {
     int i;
     memset(new_task->name, 0, max_task_name_len); 
-    new_task->has_project = 1;
+    new_task->has_project = 0;
     new_task->pid = 0;
     new_task->creation_date = 0;
     for (i = 0; i < 7; i++)

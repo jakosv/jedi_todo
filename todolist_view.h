@@ -12,10 +12,17 @@ enum view_state {
     view_week_tasks,
     view_completed_tasks,
     view_projects,
-    view_project_tasks
+    view_project_tasks,
+    view_project_completed_tasks
 };
 
-void show_task_list(const struct task_list *lst, const char *name);
-void show_project_list(const struct project_list *lst);
+void show_today_tasks(const struct task_list *lst);
+void show_week_tasks(const struct task_list *lst);
+void show_all_tasks(const struct task_list *lst);
+void show_completed_tasks(const struct task_list *lst);
+void show_project_tasks(const struct task_list *lst, const char *proj_name);
+void show_project_completed_tasks(const struct task_list *lst, 
+                                                    const char *proj_name);
+void show_projects(const struct project_list *lst);
 
 #endif

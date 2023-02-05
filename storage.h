@@ -42,5 +42,7 @@ void storage_get_all_projects(struct project_list *projects,
                                                 struct storage *st);
 void storage_get_project_tasks(project_id pid, struct task_list *tasks, 
                                                     struct storage *st);
+void storage_get_project_completed_tasks(project_id pid, 
+                                struct task_list *tasks, struct storage *st);
 
 #endif
