@@ -15,6 +15,7 @@ enum {
     rename_params_cnt = 3,
     done_params_cnt = 2,
     move_params_cnt = 3,
+    mark_green_params_cnt = 2,
     show_project_params_cnt = 2,
     show_completed_params_cnt = 2
 };
@@ -269,6 +270,17 @@ static void swap_tasks(int pos, int new_pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
+static void mark_task_green(int pos, struct todolist *list)
+{
+    struct tl_item *task_item;
+    struct task new_task;
+    task_item = tl_get_item(pos - 1, &list->tasks);
+    new_task = task_item->data;
+    new_task.green = new_task.green ? 0 : 1;
+    storage_set_task(task_item->id, &new_task, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
 static void swap_projects(int pos, int new_pos, struct todolist *list)
 {
     struct pl_item *first_project_item, *second_project_item;
@@ -450,6 +462,23 @@ static void command_swap(const char *cmd, struct todolist *list)
     params_array_free(params, move_params_cnt);
 }
 
+static void command_mark_green(const char *cmd, struct todolist *list) 
+{
+    char *params[mark_green_params_cnt];
+    int parse_cnt;
+    params_array_init(params, mark_green_params_cnt);
+    parse_command(cmd, mark_green_params_cnt, params, &parse_cnt); 
+    if (parse_cnt >= mark_green_params_cnt) {
+        int pos; 
+        char *end;
+        pos = strtol(params[1], &end, 10);
+        if (list->view == view_projects)
+            return;
+        mark_task_green(pos, list);
+    }
+    params_array_free(params, mark_green_params_cnt);
+}
+
 static void command_show_project(const char *cmd, struct todolist *list)
 {
     char *params[show_project_params_cnt];
@@ -522,6 +551,9 @@ void todolist_main_loop(struct todolist *list)
             break;
         case 's':
             command_swap(cmd, list);
+            break;
+        case 'g':
+            command_mark_green(cmd, list);
             break;
         case 't':
             update_todolist_view(view_today_tasks, list);

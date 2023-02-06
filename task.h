@@ -3,6 +3,8 @@
 
 #include "project.h"
 
+#include <time.h>
+
 enum { max_task_name_len = 101 };
 enum task_folder { tf_none, tf_today, tf_week };
 
@@ -10,7 +12,7 @@ struct task {
     char name[max_task_name_len];
     char has_project;
     project_id pid;
-    unsigned creation_date;
+    time_t creation_date;
     char repeat_days[7];
     enum task_folder folder; 
     char green;
