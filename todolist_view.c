@@ -6,6 +6,9 @@
 
 #include <string.h>
 
+#define COLOR_GREEN "\x1B[32m"
+#define COLOR_RESET "\x1B[0m"
+
 enum {
     title_size = 25,
     list_title_decor = '='
@@ -27,7 +30,10 @@ static void print_position(int pos)
 
 static void print_task(const struct task *task)
 {
-    printf("%s", task->name);
+    if (task->green)
+        printf(COLOR_GREEN "%s" COLOR_RESET, task->name);
+    else
+        printf("%s", task->name);
 }
 
 static void print_today_list_task(const struct task *task)
