@@ -5,15 +5,16 @@
 
 #include <time.h>
 
-enum { max_task_name_len = 101 };
+enum { max_task_name_len = 81 };
 enum task_folder { tf_none, tf_today, tf_week };
 
 struct task {
     char name[max_task_name_len];
     char has_project;
     project_id pid;
-    time_t creation_date;
-    char repeat_days[7];
+    time_t creation_time;
+    char rep_days;
+    short rep_interval;
     enum task_folder folder; 
     char green;
     char done;
@@ -22,5 +23,8 @@ struct task {
 void task_init(struct task *new_task);
 void task_create(const char *name, enum task_folder folder,
                                                 struct task *new_task);
+long get_task_days(const struct task *task);
+char is_task_today(const struct task *task);
+char is_task_week(const struct task *task);
 
 #endif

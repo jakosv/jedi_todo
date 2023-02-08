@@ -1,11 +1,16 @@
-CC=clang
-PROG=main
-CFLAGS=-Wall -g -ansi -pedantic
+CC = clang
+PROG = main
+CFLAGS = -Wall -g -ansi -pedantic
+OBJMODULES = todolist.o todolist_view.o task_list.o project_list.o \
+			 task.o project.o storage.o database.o
 
 .PHONY: clean 
 
-$(PROG):
-	$(CC) main.c todolist.c task_list.c project_list.c database.c task.c project.c todolist_view.c storage.c -o $(PROG) $(CFLAGS)
+%.o: %.c %.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(PROG): main.c $(OBJMODULES)
+	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
 	rm $(PROG)

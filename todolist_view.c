@@ -5,9 +5,12 @@
 #include "project.h"
 
 #include <string.h>
+#include <time.h>
 
-#define COLOR_GREEN "\x1B[32m"
-#define COLOR_RESET "\x1B[0m"
+#define COLOR_GREEN     "\x1B[32m"
+#define COLOR_CYAN      "\x1B[36m"
+#define COLOR_MAGENTA   "\x1B[35m"
+#define COLOR_RESET     "\x1B[0m"
 
 enum {
     title_size = 25,
@@ -34,6 +37,17 @@ static void print_task(const struct task *task)
         printf(COLOR_GREEN "%s" COLOR_RESET, task->name);
     else
         printf("%s", task->name);
+    printf(" | " COLOR_CYAN "Days: %ld" COLOR_RESET, get_task_days(task));
+}
+
+static void print_today_indicator()
+{
+    printf(" | " COLOR_MAGENTA "%s" COLOR_RESET, today_task_indicator);
+}
+
+static void print_week_indicator()
+{
+    printf(" | " COLOR_MAGENTA "%s" COLOR_RESET, week_task_indicator);
 }
 
 static void print_today_list_task(const struct task *task)
@@ -45,24 +59,18 @@ static void print_today_list_task(const struct task *task)
 static void print_week_list_task(const struct task *task)
 {
     print_task(task);
-    if (task->folder == tf_today)
-        printf(" | %s", today_task_indicator);
+    if (is_task_today(task))
+        print_today_indicator();
     putchar('\n');
 }
 
 static void print_all_list_task(const struct task *task)
 {
     print_task(task);
-    switch (task->folder) {
-    case tf_today:
-        printf(" | %s", today_task_indicator);
-        break;
-    case tf_week:
-        printf(" | %s", week_task_indicator);
-        break;
-    default:
-        break;
-    }
+    if (is_task_today(task))
+        print_today_indicator();
+    else if (is_task_week(task))
+        print_week_indicator();
     putchar('\n');
 }
 

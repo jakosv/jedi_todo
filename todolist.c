@@ -10,14 +10,40 @@
 
 enum {
     max_cmd_len = 200, 
-    add_params_cnt = 2,
-    remove_params_cnt = 2,
-    rename_params_cnt = 3,
-    done_params_cnt = 2,
-    move_params_cnt = 3,
-    mark_green_params_cnt = 2,
-    show_project_params_cnt = 2,
-    show_completed_params_cnt = 2
+    max_params_cnt = max_cmd_len
+};
+
+enum commands {
+    c_quit                  = 'q',
+    c_add                   = 'a',
+    c_remove                = 'r',
+    c_done                  = 'd',
+    c_move                  = 'm',
+    c_set                   = 's',
+    c_set_name              = 'n',
+    c_set_green             = 'g',
+    c_set_pos               = 'p',
+    c_set_repeat_interval   = 'i',
+    c_set_repeat_day        = 'd',
+    c_all_tasks             = 'l',
+    c_today_tasks           = 't',
+    c_week_tasks            = 'w',
+    c_completed_tasks       = 'c',
+    c_projects              = 'p'
+};
+
+enum command_params_count {
+    pcnt_add                 = 2,
+    pcnt_remove              = 2,
+    pcnt_done                = 2,
+    pcnt_move                = 3,
+    pcnt_set_name            = 3,
+    pcnt_set_pos             = 3,
+    pcnt_set_green           = 2,
+    pcnt_set_repeat_interval = 3,
+    pcnt_set_repeat_day      = 3,
+    pcnt_show_project        = 2,
+    pcnt_show_completed      = 2
 };
 
 void todolist_init(struct todolist *list)
@@ -257,7 +283,7 @@ static void move_task_to_folder(int pos, char to, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
-static void swap_tasks(int pos, int new_pos, struct todolist *list)
+static void set_task_pos(int pos, int new_pos, struct todolist *list)
 {
     struct tl_item *first_task_item, *second_task_item;
     struct task first_task, second_task;
@@ -270,7 +296,7 @@ static void swap_tasks(int pos, int new_pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
-static void mark_task_green(int pos, struct todolist *list)
+static void set_task_green(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
     struct task new_task;
@@ -281,7 +307,37 @@ static void mark_task_green(int pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
-static void swap_projects(int pos, int new_pos, struct todolist *list)
+static void set_task_repeat_interval(int pos, short interval, 
+                                                    struct todolist *list)
+{
+    struct tl_item *task_item;
+    struct task new_task;
+    task_item = tl_get_item(pos - 1, &list->tasks);
+    new_task = task_item->data;
+    new_task.rep_interval = interval;
+    new_task.rep_days = 0;
+    storage_set_task(task_item->id, &new_task, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
+static void set_task_repeat_day(int pos, char day, struct todolist *list)
+{
+    struct tl_item *task_item;
+    struct task new_task;
+    task_item = tl_get_item(pos - 1, &list->tasks);
+    new_task = task_item->data;
+    new_task.rep_interval = 0;
+    printf("%d\n", new_task.rep_days);
+    if (day == 0)
+        new_task.rep_days = 0;
+    else
+        new_task.rep_days ^= 1 << day;
+    printf("%d\n", new_task.rep_days);
+    storage_set_task(task_item->id, &new_task, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
+static void set_project_pos(int pos, int new_pos, struct todolist *list)
 {
     struct pl_item *first_project_item, *second_project_item;
     struct project first_project, second_project;
@@ -309,17 +365,15 @@ static void read_command(char *cmd, int len)
     cmd[i] = '\0';
 }
 
-static void parse_command(const char *cmd, int count, char **params, 
-                                                        int *parse_cnt)
+static void parse_command(const char *cmd, char **params, int *parse_cnt)
 {
-    int i, param_len, cmd_len;
+    int i, param_len;
     char *param;
-    cmd_len = strlen(cmd);
-    param = malloc(cmd_len + 1);
+    param = malloc(strlen(cmd) + 1);
     param_len = 0;
     *parse_cnt = 0;
     for (i = 0; cmd[i]; i++) {
-        if (*parse_cnt < (count - 1) && cmd[i] == ' ' && param_len > 0) {
+        if (cmd[i] == ' ' && param_len > 0) {
             param[param_len] = '\0';
             strlcpy(params[*parse_cnt], param, param_len + 1);
             (*parse_cnt)++;
@@ -329,7 +383,7 @@ static void parse_command(const char *cmd, int count, char **params,
             param_len++;
         }
     }
-    if (*parse_cnt < count && param_len > 0) {
+    if (param_len > 0) {
         param[param_len] = '\0';
         strlcpy(params[*parse_cnt], param, param_len + 1);
         (*parse_cnt)++;
@@ -351,31 +405,42 @@ static void params_array_free(char **params, int size)
         free(params[i]);
 }
 
-static void command_add(const char *cmd, struct todolist *list) 
+static void concat_params(int from, char **params, int *params_cnt)
 {
-    char *params[add_params_cnt];
-    int parse_cnt;
-    params_array_init(params, add_params_cnt);
-    parse_command(cmd, add_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= add_params_cnt) {
+    int i;
+    for (i = from + 1; i < *params_cnt; i++) {
+        strlcat(params[from], " ", max_cmd_len);
+        strlcat(params[from], params[i], max_cmd_len);
+    } 
+    *params_cnt = from + 1;
+}
+
+static long param_to_num(const char *param)
+{
+    long num; 
+    char *end;
+    num = strtol(param, &end, 10);
+    return num;
+}
+
+static void command_add(char **params, int params_cnt, 
+                                                struct todolist *list) 
+{
+    if (params_cnt >= pcnt_add) {
+        concat_params(1, params, &params_cnt);
         if (list->view == view_projects)
             add_project(params[1], list);
         else
             add_task(params[1], list);
     }
-    params_array_free(params, add_params_cnt);
 }
 
-static void command_remove(const char *cmd, struct todolist *list) 
+static void command_remove(char **params, int params_cnt, 
+                                                    struct todolist *list) 
 {
-    char *params[remove_params_cnt];
-    int parse_cnt;
-    params_array_init(params, remove_params_cnt);
-    parse_command(cmd, remove_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= remove_params_cnt) {
+    if (params_cnt >= pcnt_remove) {
         int pos; 
-        char *end;
-        pos = strtol(params[1], &end, 10);
+        pos = param_to_num(params[1]);
         if (list->view == view_projects) {
             remove_tasks_from_project(pos, list);
             remove_project(pos, list);
@@ -383,141 +448,160 @@ static void command_remove(const char *cmd, struct todolist *list)
             remove_task(pos, list);
         }
     }
-    params_array_free(params, remove_params_cnt);
 }
 
-static void command_rename(const char *cmd, struct todolist *list) 
+static void command_rename(char **params, int params_cnt, 
+                                                    struct todolist *list) 
 {
-    char *params[rename_params_cnt];
-    int parse_cnt;
-    params_array_init(params, rename_params_cnt);
-    parse_command(cmd, rename_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= rename_params_cnt) {
+    if (params_cnt >= pcnt_set_name) {
         int pos; 
-        char *end;
-        pos = strtol(params[1], &end, 10);
+        pos = param_to_num(params[1]);
+        concat_params(2, params, &params_cnt);
         if (list->view == view_projects)
             rename_project(pos, params[2], list);
         else
             rename_task(pos, params[2], list);
     }
-    params_array_free(params, rename_params_cnt);
 }
 
-static void command_done(const char *cmd, struct todolist *list) 
+static void command_done(char **params, int params_cnt, 
+                                                    struct todolist *list) 
 {
-    char *params[done_params_cnt];
-    int parse_cnt;
-    params_array_init(params, done_params_cnt);
-    parse_command(cmd, done_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= done_params_cnt) {
+    if (params_cnt >= pcnt_done) {
         int pos; 
-        char *end;
-        pos = strtol(params[1], &end, 10);
+        pos = param_to_num(params[1]);
         done_task(pos, list);
     }
-    params_array_free(params, done_params_cnt);
 }
 
-static void command_move(const char *cmd, struct todolist *list) 
+static void command_move(char **params, int params_cnt, 
+                                                    struct todolist *list) 
 {
-    char *params[move_params_cnt];
-    int parse_cnt;
-    params_array_init(params, move_params_cnt);
-    parse_command(cmd, move_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= move_params_cnt) {
+    if (params_cnt >= pcnt_move) {
         int pos; 
-        char *end;
-        pos = strtol(params[1], &end, 10);
+        pos = param_to_num(params[1]);
         if (isdigit(params[2][0])) {
             project_id proj_id;
-            proj_id = strtol(params[2], &end, 10);
+            proj_id = param_to_num(params[2]);
             move_task_to_project(pos, proj_id, list);
         } else {
             move_task_to_folder(pos, params[2][0], list);
         }
     }
-    params_array_free(params, move_params_cnt);
 }
 
-static void command_swap(const char *cmd, struct todolist *list) 
+static void command_set_pos(char **params, int params_cnt, 
+                                                    struct todolist *list) 
 {
-    char *params[move_params_cnt];
-    int parse_cnt;
-    params_array_init(params, move_params_cnt);
-    parse_command(cmd, move_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= move_params_cnt) {
+    if (params_cnt >= pcnt_set_pos) {
         int pos; 
-        char *end;
-        pos = strtol(params[1], &end, 10);
+        pos = param_to_num(params[1]);
         if (isdigit(params[2][0])) {
             task_id new_pos;
-            new_pos = strtol(params[2], &end, 10);
+            new_pos = param_to_num(params[2]);
             if (list->view == view_projects)
-                swap_projects(pos, new_pos, list);
+                set_project_pos(pos, new_pos, list);
             else
-                swap_tasks(pos, new_pos, list);
+                set_task_pos(pos, new_pos, list);
         }
     }
-    params_array_free(params, move_params_cnt);
 }
 
-static void command_mark_green(const char *cmd, struct todolist *list) 
+static void command_set_green(char **params, int params_cnt, 
+                                                    struct todolist *list) 
 {
-    char *params[mark_green_params_cnt];
-    int parse_cnt;
-    params_array_init(params, mark_green_params_cnt);
-    parse_command(cmd, mark_green_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= mark_green_params_cnt) {
+    if (params_cnt >= pcnt_set_green) {
         int pos; 
-        char *end;
-        pos = strtol(params[1], &end, 10);
+        pos = param_to_num(params[1]);
         if (list->view == view_projects)
             return;
-        mark_task_green(pos, list);
+        set_task_green(pos, list);
     }
-    params_array_free(params, mark_green_params_cnt);
 }
 
-static void command_show_project(const char *cmd, struct todolist *list)
+static void command_set_repeat_interval(char **params, int params_cnt, 
+                                                        struct todolist *list)
 {
-    char *params[show_project_params_cnt];
-    int parse_cnt;
-    params_array_init(params, show_project_params_cnt);
-    parse_command(cmd, show_project_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= show_project_params_cnt) {
+    if (params_cnt >= pcnt_set_repeat_interval) {
+        int pos; 
+        pos = param_to_num(params[1]);
+        if (list->view == view_projects)
+            return;
+        if (isdigit(params[2][0])) {
+            int interval;
+            interval = param_to_num(params[2]);
+            set_task_repeat_interval(pos, interval, list);
+        }
+    }
+}
+
+static void command_set_repeat_day(char **params, int params_cnt, 
+                                                    struct todolist *list)
+{
+    if (params_cnt >= pcnt_set_repeat_day) {
+        int pos; 
+        pos = param_to_num(params[1]);
+        if (list->view == view_projects)
+            return;
+        if (isdigit(params[2][0])) {
+            int day;
+            day = param_to_num(params[2]);
+            if (day >= 0 && day <= 7)
+                set_task_repeat_day(pos, day, list);
+        }
+    }
+}
+
+static void command_show_project(char **params, int params_cnt, 
+                                                    struct todolist *list)
+{
+    if (params_cnt >= pcnt_show_project) {
         if (isdigit(params[1][0])) {
             int pos; 
-            char *end;
-            pos = strtol(params[1], &end, 10);
+            pos = param_to_num(params[1]);
             list->cur_project = pos - 1;
             update_todolist_view(view_project_tasks, list);
         }
     } else {
         update_todolist_view(view_projects, list);
     }
-    params_array_free(params, show_project_params_cnt);
 } 
 
-static void command_show_completed(const char *cmd, struct todolist *list)
+static void command_show_completed(char **params, int params_cnt, 
+                                                    struct todolist *list)
 {
-    char *params[show_completed_params_cnt];
-    int parse_cnt;
-    params_array_init(params, show_completed_params_cnt);
-    parse_command(cmd, show_completed_params_cnt, params, &parse_cnt); 
-    if (parse_cnt >= show_project_params_cnt) {
+    if (params_cnt >= pcnt_show_completed) {
         if (isdigit(params[1][0])) {
             int pos; 
-            char *end;
-            pos = strtol(params[1], &end, 10);
+            pos = param_to_num(params[1]);
             list->cur_project = pos - 1;
             update_todolist_view(view_project_completed_tasks, list);
         }
     } else {
         update_todolist_view(view_completed_tasks, list);
     }
-    params_array_free(params, show_completed_params_cnt);
 } 
+
+static void command_set(char cmd, char **params, int params_cnt, 
+                                                    struct todolist *list)
+{
+    switch (cmd) {
+    case c_set_name:
+        command_rename(params, params_cnt, list);
+    case c_set_pos:
+        command_set_pos(params, params_cnt, list);
+        break;
+    case c_set_green:
+        command_set_green(params, params_cnt, list);
+        break;
+    case c_set_repeat_interval:
+        command_set_repeat_interval(params, params_cnt, list);
+        break;
+    case c_set_repeat_day:
+        command_set_repeat_day(params, params_cnt, list);
+        break;
+    }
+}
 
 static void print_prompt()
 {
@@ -527,52 +611,50 @@ static void print_prompt()
 void todolist_main_loop(struct todolist *list)
 {
     char cmd[max_cmd_len];
+    char *params[max_params_cnt];
+    int params_cnt;
+    params_array_init(params, sizeof(params) / sizeof(char *));
     do {
         show_list(list);
         
         print_prompt();
         read_command(cmd, max_cmd_len);
+        parse_command(cmd, params, &params_cnt); 
 
         switch (cmd[0]) {
-        case 'a':
-            command_add(cmd, list);
+        case c_add:
+            command_add(params, params_cnt, list);
             break;
-        case 'd':
-            command_done(cmd, list);
+        case c_done:
+            command_done(params, params_cnt, list);
             break;
-        case 'r':
-            command_remove(cmd, list);
+        case c_remove:
+            command_remove(params, params_cnt, list);
             break;
-        case 'n':
-            command_rename(cmd, list);
+        case c_set:
+            command_set(cmd[1], params, params_cnt, list);
             break;
-        case 'm':
-            command_move(cmd, list);
+        case c_move:
+            command_move(params, params_cnt, list);
             break;
-        case 's':
-            command_swap(cmd, list);
-            break;
-        case 'g':
-            command_mark_green(cmd, list);
-            break;
-        case 't':
+        case c_today_tasks:
             update_todolist_view(view_today_tasks, list);
             break;
-        case 'l':
+        case c_all_tasks:
             update_todolist_view(view_all_tasks, list);
             break;
-        case 'w':
+        case c_week_tasks:
             update_todolist_view(view_week_tasks, list);
             break;
-        case 'c':
-            command_show_completed(cmd, list);
+        case c_completed_tasks:
+            command_show_completed(params, params_cnt, list);
             break;
-        case 'p':
-            command_show_project(cmd, list);
+        case c_projects:
+            command_show_project(params, params_cnt, list);
             break;
         default:
             break;
         }
-    } while (cmd[0] != 'q');
-
+    } while (cmd[0] != c_quit);
+    params_array_free(params, sizeof(params) / sizeof(char *));
 }

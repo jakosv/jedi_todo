@@ -117,7 +117,7 @@ void storage_get_today_tasks(struct task_list *tasks, struct storage *st)
     struct tl_item *tmp;
     task_id pos;
     for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (!tmp->data.done && tmp->data.folder == tf_today)
+        if (!tmp->data.done && is_task_today(&tmp->data))
             tl_add(pos, &tmp->data, tasks);
 }
 
