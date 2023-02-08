@@ -34,11 +34,35 @@ static time_t days_to_sec(long days)
     return days * 24 * 60 * 60;
 }
 
-long get_task_days(const struct task *task)
+long task_days(const struct task *task)
 {
     time_t today;
     today = time(NULL);
     return sec_to_days(today) - sec_to_days(task->creation_time);
+}
+
+time_t next_repeat(const struct task *task)
+{
+    if (task->rep_days) {
+        char day, c_wday, days_diff;
+        c_wday = localtime(&task->creation_time)->tm_wday;
+        if (task->rep_days & (1 << c_wday))
+            return task->creation_time;
+        days_diff = 1;
+        for (day = c_wday % 7 + 1; day != c_wday; day = day % 7 + 1) {
+            if (task->rep_days & (1 << day))
+                return task->creation_time + days_to_sec(days_diff);
+            days_diff++;
+        }
+    } else if (task->rep_interval) {
+        return task->creation_time + days_to_sec(task->rep_interval - 1);
+    }
+    return 0;
+}
+
+char is_task_repeating(const struct task *task)
+{
+    return task->rep_days || task->rep_interval;
 }
 
 char is_task_today(const struct task *task)

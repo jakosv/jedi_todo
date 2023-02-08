@@ -23,7 +23,9 @@ struct task {
 void task_init(struct task *new_task);
 void task_create(const char *name, enum task_folder folder,
                                                 struct task *new_task);
-long get_task_days(const struct task *task);
+long task_days(const struct task *task);
+time_t next_repeat(const struct task *task);
+char is_task_repeating(const struct task *task);
 char is_task_today(const struct task *task);
 char is_task_week(const struct task *task);
 

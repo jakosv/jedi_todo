@@ -19,6 +19,7 @@ enum {
 
 static const char *today_task_indicator = "Today";
 static const char *week_task_indicator = "Week";
+static const char *repeating_task_indicator = "Repeating";
 
 static const char *today_list_title = "Today";
 static const char *week_list_title = "Week";
@@ -37,7 +38,7 @@ static void print_task(const struct task *task)
         printf(COLOR_GREEN "%s" COLOR_RESET, task->name);
     else
         printf("%s", task->name);
-    printf(" | " COLOR_CYAN "Days: %ld" COLOR_RESET, get_task_days(task));
+    printf(" | " COLOR_CYAN "Days: %ld" COLOR_RESET, task_days(task));
 }
 
 static void print_today_indicator()
@@ -45,14 +46,31 @@ static void print_today_indicator()
     printf(" | " COLOR_MAGENTA "%s" COLOR_RESET, today_task_indicator);
 }
 
+static void print_repeating_indicator()
+{
+    printf(" | " COLOR_MAGENTA "%s" COLOR_RESET, repeating_task_indicator);
+}
+
 static void print_week_indicator()
 {
     printf(" | " COLOR_MAGENTA "%s" COLOR_RESET, week_task_indicator);
 }
 
+static void print_task_next_repeat(const struct task *task)
+{
+    enum { time_str_size = 20 };
+    char str[time_str_size];
+    time_t next_rep_time;
+    next_rep_time = next_repeat(task);
+    strftime(str, time_str_size, "%d-%m-%y", localtime(&next_rep_time));
+    printf(" | " COLOR_MAGENTA "Repeat: %s" COLOR_RESET, str);
+}
+
 static void print_today_list_task(const struct task *task)
 {
     print_task(task);
+    if (is_task_repeating(task))
+        print_repeating_indicator();
     putchar('\n');
 }
 
@@ -61,16 +79,23 @@ static void print_week_list_task(const struct task *task)
     print_task(task);
     if (is_task_today(task))
         print_today_indicator();
+    else if (is_task_repeating(task))
+        print_task_next_repeat(task);
     putchar('\n');
 }
 
 static void print_all_list_task(const struct task *task)
 {
     print_task(task);
-    if (is_task_today(task))
+    if (is_task_today(task)) {
         print_today_indicator();
-    else if (is_task_week(task))
+    } else if (is_task_week(task)) {
         print_week_indicator();
+        if (is_task_repeating(task))
+            print_repeating_indicator();
+    } else if (is_task_repeating(task)) {
+        print_task_next_repeat(task);
+    }
     putchar('\n');
 }
 

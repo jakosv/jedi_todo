@@ -27,8 +27,6 @@ void storage_get_today_tasks(struct task_list *tasks,
                                                 struct storage *st);
 void storage_get_week_tasks(struct task_list *tasks, 
                                                 struct storage *st);
-void storage_get_green_tasks(struct task_list *tasks, 
-                                                struct storage *st);
 void storage_get_completed_tasks(struct task_list *tasks, 
                                                 struct storage *st);
 
