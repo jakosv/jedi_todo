@@ -6,6 +6,7 @@
 void project_init(struct project *new_project)
 {
     memset(new_project->name, 0, max_project_name_len);
+    memset(new_project->description, 0, max_project_descript_len);
 }
 
 void project_create(const char *name, struct project *new_project)

@@ -21,10 +21,11 @@ enum commands {
     c_move                  = 'm',
     c_set                   = 's',
     c_set_name              = 'n',
+    c_set_description       = 'd',
     c_set_green             = 'g',
     c_set_pos               = 'p',
     c_set_repeat_interval   = 'i',
-    c_set_repeat_day        = 'd',
+    c_set_repeat_day        = 'r',
     c_all_tasks             = 'l',
     c_today_tasks           = 't',
     c_week_tasks            = 'w',
@@ -232,6 +233,30 @@ static void rename_project(int pos, const char *name,
     update_todolist_view(list->view, list);
 }
 
+static void set_task_description(int pos, const char *description, 
+                                            struct todolist *list)
+{
+    struct tl_item *task_item;
+    struct task new_task;
+    task_item = tl_get_item(pos - 1, &list->tasks);
+    new_task = task_item->data;
+    strlcpy(new_task.description, description, max_task_descript_len);
+    storage_set_task(task_item->id, &new_task, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
+static void set_project_description(int pos, const char *description, 
+                                            struct todolist *list)
+{
+    struct pl_item *proj_item;
+    struct project proj;
+    proj_item = pl_get_item(pos - list_start_pos, &list->projects);
+    proj = proj_item->data;
+    strlcpy(proj.description, description, max_project_descript_len);
+    storage_set_project(proj_item->id, &proj, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
 static void done_task(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
@@ -307,13 +332,16 @@ static void set_task_green(int pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
-static void set_task_repeat_interval(int pos, short interval, 
+static void set_task_repeat_interval(int pos, int interval, int start_in, 
                                                     struct todolist *list)
 {
     struct tl_item *task_item;
     struct task new_task;
+    time_t now;
     task_item = tl_get_item(pos - 1, &list->tasks);
     new_task = task_item->data;
+    now = time(NULL);
+    new_task.creation_time = now + days_to_sec(start_in - interval);
     new_task.rep_interval = interval;
     new_task.rep_days = 0;
     storage_set_task(task_item->id, &new_task, &list->storage); 
@@ -327,7 +355,6 @@ static void set_task_repeat_day(int pos, char day, struct todolist *list)
     task_item = tl_get_item(pos - 1, &list->tasks);
     new_task = task_item->data;
     new_task.rep_interval = 0;
-    printf("%d\n", new_task.rep_days);
     if (day == 0)
         new_task.rep_days = 0;
     else
@@ -464,6 +491,20 @@ static void command_rename(char **params, int params_cnt,
     }
 }
 
+static void command_set_description(char **params, int params_cnt, 
+                                                    struct todolist *list) 
+{
+    if (params_cnt >= pcnt_set_name) {
+        int pos; 
+        pos = param_to_num(params[1]);
+        concat_params(2, params, &params_cnt);
+        if (list->view == view_projects)
+            set_project_description(pos, params[2], list);
+        else
+            set_task_description(pos, params[2], list);
+    }
+}
+
 static void command_done(char **params, int params_cnt, 
                                                     struct todolist *list) 
 {
@@ -528,9 +569,12 @@ static void command_set_repeat_interval(char **params, int params_cnt,
         if (list->view == view_projects)
             return;
         if (isdigit(params[2][0])) {
-            int interval;
+            int interval, start_in;
             interval = param_to_num(params[2]);
-            set_task_repeat_interval(pos, interval, list);
+            start_in = 0;
+            if (params_cnt >= 4 && isdigit(params[3][0]))
+               start_in = param_to_num(params[3]); 
+            set_task_repeat_interval(pos, interval, start_in, list);
         }
     }
 }
@@ -588,6 +632,9 @@ static void command_set(char cmd, char **params, int params_cnt,
     switch (cmd) {
     case c_set_name:
         command_rename(params, params_cnt, list);
+    case c_set_description:
+        command_set_description(params, params_cnt, list);
+        break;
     case c_set_pos:
         command_set_pos(params, params_cnt, list);
         break;

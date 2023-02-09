@@ -4,11 +4,13 @@
 typedef unsigned project_id;
 
 enum { 
-    max_project_name_len = 101
+    max_project_name_len = 81,
+    max_project_descript_len = 100
 };
 
 struct project {
     char name[max_project_name_len];
+    char description[max_project_descript_len];
 };
 
 void project_init(struct project *new_project);

@@ -6,11 +6,13 @@
 void task_init(struct task *new_task)
 {
     memset(new_task->name, 0, max_task_name_len); 
+    memset(new_task->description, 0, max_task_descript_len);
     new_task->has_project = 0;
     new_task->pid = 0;
     new_task->creation_time = time(NULL);
     new_task->rep_days = 0;
     new_task->rep_interval = 0;
+    new_task->next_repeat = 0;
     new_task->folder = tf_none;
     new_task->green = 0;
     new_task->done = 0;
@@ -24,12 +26,12 @@ void task_create(const char *name, enum task_folder folder,
     strlcpy(new_task->name, name, max_task_name_len); 
 }
 
-static long sec_to_days(time_t seconds)
+long sec_to_days(time_t seconds)
 {
     return seconds / (60 * 60 * 24);
 }
 
-static time_t days_to_sec(long days)
+time_t days_to_sec(long days)
 {
     return days * 24 * 60 * 60;
 }
@@ -37,8 +39,12 @@ static time_t days_to_sec(long days)
 long task_days(const struct task *task)
 {
     time_t today;
+    long days;
     today = time(NULL);
-    return sec_to_days(today) - sec_to_days(task->creation_time);
+    days = sec_to_days(today) - sec_to_days(task->creation_time);
+    if (task->rep_interval)
+        days -= task->rep_interval;
+    return days;
 }
 
 time_t next_repeat(const struct task *task)
@@ -55,7 +61,7 @@ time_t next_repeat(const struct task *task)
             days_diff++;
         }
     } else if (task->rep_interval) {
-        return task->creation_time + days_to_sec(task->rep_interval - 1);
+        return task->creation_time + days_to_sec(task->rep_interval);
     }
     return 0;
 }
@@ -88,7 +94,7 @@ char is_task_today(const struct task *task)
            if (task->rep_days & (1 << day))
                return 1;
     } else if (task->rep_interval) {
-        return days_diff >= task->rep_interval - 1;
+        return days_diff >= task->rep_interval;
     }
     return 0;
 }
@@ -113,7 +119,7 @@ char is_task_week(const struct task *task)
         week_day = localtime(&now)->tm_wday;
         last_week_day = today + (7 - week_day);
         creation_day = sec_to_days(task->creation_time);
-        return creation_day + task->rep_interval - 1 <= last_week_day;
+        return creation_day + task->rep_interval <= last_week_day;
     }
     return 0;
 }
