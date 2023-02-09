@@ -14,12 +14,14 @@
 
 enum {
     title_size = 25,
-    list_title_decor = '='
+    decoration = '=',
+    date_str_size = 10
 };
 
 static const char *today_task_indicator = "Today";
 static const char *week_task_indicator = "Week";
 static const char *repeating_task_indicator = "Repeating";
+static const char *date_format = "%d-%m-%y";
 
 static const char *today_list_title = "Today";
 static const char *week_list_title = "Week";
@@ -38,7 +40,8 @@ static void print_task(const struct task *task)
         printf(COLOR_GREEN "%s" COLOR_RESET, task->name);
     else
         printf("%s", task->name);
-    printf(" | " COLOR_CYAN "Days: %ld" COLOR_RESET, task_days(task));
+    if (is_task_today(task))
+        printf(" | " COLOR_CYAN "Days: %ld" COLOR_RESET, task_days(task));
 }
 
 static void print_today_indicator()
@@ -58,11 +61,10 @@ static void print_week_indicator()
 
 static void print_task_next_repeat(const struct task *task)
 {
-    enum { time_str_size = 20 };
-    char str[time_str_size];
+    char str[date_str_size];
     time_t next_rep_time;
     next_rep_time = next_repeat(task);
-    strftime(str, time_str_size, "%d-%m-%y", localtime(&next_rep_time));
+    strftime(str, date_str_size, date_format, localtime(&next_rep_time));
     printf(" | " COLOR_MAGENTA "Repeat: %s" COLOR_RESET, str);
 }
 
@@ -104,100 +106,112 @@ static void print_project(const struct project *project)
     printf("%s\n", project->name);
 }
 
-static void print_list_title(const char *name)
+static void print_decor_title(const char *name)
 {
     int i, decor_size;
-    decor_size = (title_size - (strlen(name) + 2)) / 2;
+    decor_size = (title_size - (strlen(name) + 2) + 1) / 2;
     for (i = 0; i < decor_size; i++)
-        putchar(list_title_decor);
+        putchar(decoration);
     printf(" %s ", name);
     decor_size = title_size - (decor_size + strlen(name) + 2);
     for (i = 0; i < decor_size; i++)
-        putchar(list_title_decor);
+        putchar(decoration);
     putchar('\n');
 }
 
-static void print_list_bottom()
+static void print_decor_bottom()
 {
     int i;
     for (i = 0; i < title_size; i++)
-        putchar(list_title_decor);
+        putchar(decoration);
     putchar('\n');
+}
+
+static void concat_titles(char *title, int size, const char *first,
+                                                    const char *second)
+{
+    strlcpy(title, first, size); 
+    strlcat(title, second, size);
+}
+
+static void gen_today_tasks_title(char *title, int size)
+{
+    time_t today;
+    char date_str[date_str_size];
+    today = time(NULL);
+    strftime(date_str, date_str_size, date_format, localtime(&today));
+    strlcpy(title, today_list_title, size); 
+    strlcat(title, ": ", size);
+    strlcat(title, date_str, size);
 }
 
 void show_today_tasks(const struct task_list *lst)
 {
+    enum { max_today_title_size = 30 };
     struct tl_item *tmp;
+    char title[max_today_title_size];
     task_id pos = list_start_pos;
-    print_list_title(today_list_title);
+    gen_today_tasks_title(title, max_today_title_size);
+    print_decor_title(title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_today_list_task(&tmp->data);
         pos++;
     }
-    print_list_bottom();
+    print_decor_bottom();
 }
 
 void show_week_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
     task_id pos = list_start_pos;
-    print_list_title(week_list_title);
+    print_decor_title(week_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_week_list_task(&tmp->data);
         pos++;
     }
-    print_list_bottom();
+    print_decor_bottom();
 }
 
 void show_all_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
     task_id pos = list_start_pos;
-    print_list_title(all_list_title);
+    print_decor_title(all_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
         pos++;
     }
-    print_list_bottom();
+    print_decor_bottom();
 }
 
 void show_completed_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
     task_id pos = list_start_pos;
-    print_list_title(completed_list_title);
+    print_decor_title(completed_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
         pos++;
     }
-    print_list_bottom();
+    print_decor_bottom();
 }
 
 void show_project_tasks(const struct task_list *lst, const char *proj_name)
 {
     struct tl_item *tmp;
     task_id pos = list_start_pos;
-    print_list_title(proj_name);
+    print_decor_title(proj_name);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
         pos++;
     }
-    print_list_bottom();
+    print_decor_bottom();
 }
-
-static void gen_project_completed_title(char *str, int size, 
-                                                const char* project_name)
-{
-    const char *completed_title = "Completed: ";
-    strlcpy(str, completed_title, size);
-    strncat(str, project_name, max_project_name_len - 1);
-}
-
 
 void show_project_completed_tasks(const struct task_list *lst,
                                                     const char *proj_name)
@@ -205,25 +219,50 @@ void show_project_completed_tasks(const struct task_list *lst,
     struct tl_item *tmp;
     task_id pos = list_start_pos;
     char title[50 + max_project_name_len];
-    gen_project_completed_title(title, sizeof(title), proj_name);
-    print_list_title(title);
+    concat_titles(title, sizeof(title), "Completed: ", proj_name);
+    print_decor_title(title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
         pos++;
     }
-    print_list_bottom();
+    print_decor_bottom();
 }
 
 void show_projects(const struct project_list *lst)
 {
     struct pl_item *tmp;
     task_id pos = list_start_pos;
-    print_list_title(projects_list_title);
+    print_decor_title(projects_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_project(&tmp->data);
         pos++;
     }
-    print_list_bottom();
+    print_decor_bottom();
+}
+
+static void print_description(const char *description)
+{
+    printf("Description: %s\n", description);
+}
+
+void show_task_info(const struct task *task)
+{
+    enum { task_title_size = 20 + max_task_name_len };
+    char title[task_title_size];
+    concat_titles(title, task_title_size, "Task: ", task->name);
+    print_decor_title(title);
+    print_description(task->description);
+    print_decor_bottom();
+}
+
+void show_project_info(const struct project *proj)
+{
+    enum { proj_title_size = 20 + max_project_name_len };
+    char title[proj_title_size];
+    concat_titles(title, proj_title_size, "Project: ", proj->name);
+    print_decor_title(title);
+    print_description(proj->description);
+    print_decor_bottom();
 }

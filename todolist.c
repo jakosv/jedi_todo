@@ -30,7 +30,8 @@ enum commands {
     c_today_tasks           = 't',
     c_week_tasks            = 'w',
     c_completed_tasks       = 'c',
-    c_projects              = 'p'
+    c_projects              = 'p',
+    c_info                  = 'i'
 };
 
 enum command_params_count {
@@ -44,7 +45,8 @@ enum command_params_count {
     pcnt_set_repeat_interval = 3,
     pcnt_set_repeat_day      = 3,
     pcnt_show_project        = 2,
-    pcnt_show_completed      = 2
+    pcnt_show_completed      = 2,
+    pcnt_show_info           = 2
 };
 
 void todolist_init(struct todolist *list)
@@ -359,9 +361,22 @@ static void set_task_repeat_day(int pos, char day, struct todolist *list)
         new_task.rep_days = 0;
     else
         new_task.rep_days ^= 1 << day;
-    printf("%d\n", new_task.rep_days);
     storage_set_task(task_item->id, &new_task, &list->storage); 
     update_todolist_view(list->view, list);
+}
+
+static void task_info(int pos, struct todolist *list)
+{
+    struct tl_item *task_item;
+    task_item = tl_get_item(pos - 1, &list->tasks);
+    show_task_info(&task_item->data);
+}
+
+static void project_info(int pos, struct todolist *list)
+{
+    struct pl_item *project_item;
+    project_item = pl_get_item(pos - 1, &list->projects);
+    show_project_info(&project_item->data);
 }
 
 static void set_project_pos(int pos, int new_pos, struct todolist *list)
@@ -626,6 +641,21 @@ static void command_show_completed(char **params, int params_cnt,
     }
 } 
 
+static void command_show_info(char **params, int params_cnt, 
+                                                    struct todolist *list)
+{
+    if (params_cnt >= pcnt_show_info) {
+        if (isdigit(params[1][0])) {
+            int pos; 
+            pos = param_to_num(params[1]);
+            if (list->view == view_projects)
+                project_info(pos, list);
+            else
+                task_info(pos, list);
+        }
+    }
+} 
+
 static void command_set(char cmd, char **params, int params_cnt, 
                                                     struct todolist *list)
 {
@@ -698,6 +728,9 @@ void todolist_main_loop(struct todolist *list)
             break;
         case c_projects:
             command_show_project(params, params_cnt, list);
+            break;
+        case c_info:
+            command_show_info(params, params_cnt, list);
             break;
         default:
             break;

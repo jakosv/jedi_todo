@@ -27,5 +27,7 @@ void show_project_tasks(const struct task_list *lst, const char *proj_name);
 void show_project_completed_tasks(const struct task_list *lst, 
                                                     const char *proj_name);
 void show_projects(const struct project_list *lst);
+void show_task_info(const struct task *task);
+void show_project_info(const struct project *proj);
 
 #endif
