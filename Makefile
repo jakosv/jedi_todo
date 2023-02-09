@@ -13,4 +13,4 @@ $(PROG): main.c $(OBJMODULES)
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	rm $(PROG)
+	rm $(PROG) *.o
