@@ -19,7 +19,6 @@ struct task {
     time_t creation_time;
     char rep_days;
     short rep_interval;
-    time_t next_repeat;
     enum task_folder folder; 
     char green;
     char done;
@@ -30,10 +29,13 @@ void task_create(const char *name, enum task_folder folder,
                                                 struct task *new_task);
 long sec_to_days(time_t seconds);
 time_t days_to_sec(long days);
-long task_days(const struct task *task);
-time_t next_repeat(const struct task *task);
 char is_task_repeating(const struct task *task);
+time_t task_repeat_date(const struct task *task);
+long task_days(const struct task *task);
+time_t get_next_repeat(const struct task *task);
 char is_task_today(const struct task *task);
 char is_task_week(const struct task *task);
+void task_unrepeat(struct task *task);
+void task_update_days_repeat(char new_day, struct task *task);
 
 #endif

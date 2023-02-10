@@ -262,11 +262,16 @@ static void set_project_description(int pos, const char *description,
 static void done_task(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
-    struct task new_task;
+    struct task task;
     task_item = tl_get_item(pos - 1, &list->tasks);
-    new_task = task_item->data;
-    new_task.done = new_task.done ? 0 : 1;
-    storage_set_task(task_item->id, &new_task, &list->storage); 
+    task = task_item->data;
+    task.done = task.done ? 0 : 1;
+    storage_set_task(task_item->id, &task, &list->storage); 
+    if (task.done && is_task_repeating(&task)) {
+        task.done = 0;
+        task.creation_time = get_next_repeat(&task);
+        storage_add_task(&task, &list->storage);
+    }
     update_todolist_view(list->view, list);
 }
 
@@ -293,6 +298,11 @@ static void move_task_to_folder(int pos, char to, struct todolist *list)
     struct task new_task;
     task_item = tl_get_item(pos - 1, &list->tasks);
     new_task = task_item->data;
+    if (is_task_repeating(&new_task)) {
+        new_task.creation_time = get_next_repeat(&new_task);
+        storage_add_task(&new_task, &list->storage);
+        task_unrepeat(&new_task);
+    }
     switch (to) {
     case 't':
         new_task.folder = tf_today;
@@ -353,15 +363,17 @@ static void set_task_repeat_interval(int pos, int interval, int start_in,
 static void set_task_repeat_day(int pos, char day, struct todolist *list)
 {
     struct tl_item *task_item;
-    struct task new_task;
+    struct task task;
     task_item = tl_get_item(pos - 1, &list->tasks);
-    new_task = task_item->data;
-    new_task.rep_interval = 0;
-    if (day == 0)
-        new_task.rep_days = 0;
-    else
-        new_task.rep_days ^= 1 << day;
-    storage_set_task(task_item->id, &new_task, &list->storage); 
+    task = task_item->data;
+    task.rep_interval = 0;
+    if (day == 0) {
+        task.rep_days = 0;
+        task.creation_time = time(NULL);
+    } else {
+        task_update_days_repeat(day, &task);
+    }
+    storage_set_task(task_item->id, &task, &list->storage); 
     update_todolist_view(list->view, list);
 }
 

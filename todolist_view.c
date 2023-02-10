@@ -62,13 +62,21 @@ static void print_week_indicator()
 static void print_task_next_repeat(const struct task *task)
 {
     char str[date_str_size];
-    time_t next_rep_time;
-    next_rep_time = next_repeat(task);
-    strftime(str, date_str_size, date_format, localtime(&next_rep_time));
+    time_t repeat;
+    repeat = task_repeat_date(task);
+    strftime(str, date_str_size, date_format, localtime(&repeat));
     printf(" | " COLOR_MAGENTA "Repeat: %s" COLOR_RESET, str);
 }
 
 static void print_today_list_task(const struct task *task)
+{
+    print_task(task);
+    if (is_task_repeating(task))
+        print_repeating_indicator();
+    putchar('\n');
+}
+
+static void print_completed_list_task(const struct task *task)
 {
     print_task(task);
     if (is_task_repeating(task))
@@ -194,7 +202,7 @@ void show_completed_tasks(const struct task_list *lst)
     print_decor_title(completed_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
-        print_all_list_task(&tmp->data);
+        print_completed_list_task(&tmp->data);
         pos++;
     }
     print_decor_bottom();
@@ -223,7 +231,7 @@ void show_project_completed_tasks(const struct task_list *lst,
     print_decor_title(title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
-        print_all_list_task(&tmp->data);
+        print_completed_list_task(&tmp->data);
         pos++;
     }
     print_decor_bottom();
