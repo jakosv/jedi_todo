@@ -130,12 +130,22 @@ void task_unrepeat(struct task *task)
     task->creation_time = time(NULL);
 }
 
-void task_update_days_repeat(char new_day, struct task *task)
+void task_add_repeat_interval(int interval, int start_in, struct task *task)
+{
+    time_t now;
+    now = time(NULL);
+    task->creation_time = now + days_to_sec(start_in - interval);
+    task->rep_interval = interval;
+    task->rep_days = 0;
+} 
+
+void task_update_repeat_days(char new_day, struct task *task)
 {
     time_t date, now;
     char days_diff;
     now = time(NULL);
     date = task->creation_time;
+    task->rep_interval = 0;
     task->rep_days ^= 1 << new_day;
     if (task->rep_days & (1 << new_day)) {
         long prev_date, new_date, today_date;

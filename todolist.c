@@ -348,15 +348,11 @@ static void set_task_repeat_interval(int pos, int interval, int start_in,
                                                     struct todolist *list)
 {
     struct tl_item *task_item;
-    struct task new_task;
-    time_t now;
+    struct task task;
     task_item = tl_get_item(pos - 1, &list->tasks);
-    new_task = task_item->data;
-    now = time(NULL);
-    new_task.creation_time = now + days_to_sec(start_in - interval);
-    new_task.rep_interval = interval;
-    new_task.rep_days = 0;
-    storage_set_task(task_item->id, &new_task, &list->storage); 
+    task = task_item->data;
+    task_add_repeat_interval(interval, start_in, &task);
+    storage_set_task(task_item->id, &task, &list->storage); 
     update_todolist_view(list->view, list);
 }
 
@@ -366,13 +362,10 @@ static void set_task_repeat_day(int pos, char day, struct todolist *list)
     struct task task;
     task_item = tl_get_item(pos - 1, &list->tasks);
     task = task_item->data;
-    task.rep_interval = 0;
-    if (day == 0) {
-        task.rep_days = 0;
-        task.creation_time = time(NULL);
-    } else {
-        task_update_days_repeat(day % 7, &task);
-    }
+    if (day == 0)
+        task_unrepeat(&task);
+    else
+        task_update_repeat_days(day % 7, &task);
     storage_set_task(task_item->id, &task, &list->storage); 
     update_todolist_view(list->view, list);
 }
