@@ -40,7 +40,7 @@ static void print_task(const struct task *task)
         printf(COLOR_GREEN "%s" COLOR_RESET, task->name);
     else
         printf("%s", task->name);
-    if (is_task_today(task))
+    if (is_task_today(task) || !is_task_repeating(task))
         printf(" | " COLOR_CYAN "Days: %ld" COLOR_RESET, task_days(task));
 }
 
@@ -59,13 +59,13 @@ static void print_week_indicator()
     printf(" | " COLOR_MAGENTA "%s" COLOR_RESET, week_task_indicator);
 }
 
-static void print_task_next_repeat(const struct task *task)
+static void print_task_repeat_date(const struct task *task)
 {
     char str[date_str_size];
     time_t repeat;
     repeat = task_repeat_date(task);
     strftime(str, date_str_size, date_format, localtime(&repeat));
-    printf(" | " COLOR_MAGENTA "Repeat: %s" COLOR_RESET, str);
+    printf("Repeat: %s" COLOR_RESET, str);
 }
 
 static void print_today_list_task(const struct task *task)
@@ -89,8 +89,11 @@ static void print_week_list_task(const struct task *task)
     print_task(task);
     if (is_task_today(task))
         print_today_indicator();
-    else if (is_task_repeating(task))
-        print_task_next_repeat(task);
+    else if (is_task_repeating(task)) {
+        printf(" | " COLOR_MAGENTA);
+        print_task_repeat_date(task);
+        printf(COLOR_RESET);
+    }
     putchar('\n');
 }
 
@@ -104,7 +107,9 @@ static void print_all_list_task(const struct task *task)
         if (is_task_repeating(task))
             print_repeating_indicator();
     } else if (is_task_repeating(task)) {
-        print_task_next_repeat(task);
+        printf(" | " COLOR_MAGENTA);
+        print_task_repeat_date(task);
+        printf(COLOR_RESET);
     }
     putchar('\n');
 }
@@ -255,6 +260,33 @@ static void print_description(const char *description)
     printf("Description: %s\n", description);
 }
 
+static void print_task_repeat_info(const struct task *task)
+{
+    if (task->rep_days) {
+        enum { week_days_cnt = 7 };
+        const char *days[] = {
+            "Mon",
+            "Tue",
+            "Wed",
+            "Thu",
+            "Fri",
+            "Sat",
+            "Sun" 
+        };
+        char day;
+        printf("Repeat days: ");
+        for (day = 1; day <= 7; day++) {
+            if (task->rep_days & (1 << (day % 7)))
+                printf("%s ", days[day - 1]);
+        }
+        putchar('\n');
+    } else if (task->rep_interval) {
+        printf("Repeat interval: %d\n", task->rep_interval);
+    }
+    print_task_repeat_date(task);
+    putchar('\n');
+}
+
 void show_task_info(const struct task *task)
 {
     enum { task_title_size = 20 + max_task_name_len };
@@ -262,6 +294,7 @@ void show_task_info(const struct task *task)
     concat_titles(title, task_title_size, "Task: ", task->name);
     print_decor_title(title);
     print_description(task->description);
+    print_task_repeat_info(task);
     print_decor_bottom();
 }
 

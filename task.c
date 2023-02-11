@@ -90,63 +90,35 @@ time_t get_next_repeat(const struct task *task)
 
 char is_task_today(const struct task *task)
 {
-    enum { days_in_week = 7 };
-    char today, creation_day;
-    time_t now, time_diff;
-    long days_diff;
+    time_t now;
+    long today_date, task_date;
     if (task->folder == tf_today)
         return 1;
-    now = time(NULL);
-    today = localtime(&now)->tm_wday;
-    creation_day = localtime(&task->creation_time)->tm_wday;
-    time_diff = difftime(now, task->creation_time);
-    days_diff = sec_to_days(now) - sec_to_days(task->creation_time);
-    if (task->rep_days)
-        return task->creation_time <= now;
-    else if (task->rep_interval)
-        return (task->creation_time + days_to_sec(task->rep_interval)) <= now;
-        /*
-    if (task->rep_days) {
-        char day;
-        if (time_diff >= days_to_sec(days_in_week))
-            return 1;
-        if (task->rep_days & (1 << today))
-            return 1;
-        for (day = creation_day; day != today; day = day % 7 + 1)
-           if (task->rep_days & (1 << day))
-               return 1;
-    } else if (task->rep_interval) {
-        return days_diff >= task->rep_interval;
+    if (is_task_repeating(task)) {
+        now = time(NULL);
+        today_date = sec_to_days(now);
+        task_date = sec_to_days(task_repeat_date(task));
+        return task_date <= today_date;
     }
-    */
     return 0;
 }
 
 char is_task_week(const struct task *task)
 {
-    time_t now;
     if (task->folder == tf_week || is_task_today(task)) {
         return 1;
-    } else if (task->rep_days) {
-        char today, day;
+    } else if (is_task_repeating(task)) {
+        time_t now;
+        char today_wday;
+        long today_date, sunday_date, task_date;
         now = time(NULL);
-        today = localtime(&now)->tm_wday;
-        if (today == 0)
-            today = 7;
-        for (day = today; day <= 7; day++)
-            if (task->rep_days & (1 << (day % 7)))
-                return 1;
-    } else if (task->rep_interval) {
-        long today, creation_date, last_week_day;
-        char week_day;
-        now = time(NULL);
-        today = sec_to_days(now);
-        week_day = localtime(&now)->tm_wday;
-        if (week_day == 0)
-            week_day = 7;
-        last_week_day = today + (7 - week_day);
-        creation_date = sec_to_days(task->creation_time);
-        return creation_date + task->rep_interval <= last_week_day;
+        today_wday = localtime(&now)->tm_wday; 
+        today_date = sec_to_days(now);
+        if (today_wday == 0)
+            today_wday = 7;
+        sunday_date = today_date + (7 - today_wday);
+        task_date = sec_to_days(task_repeat_date(task));
+        return task_date <= sunday_date;
     }
     return 0;
 }
@@ -161,10 +133,9 @@ void task_unrepeat(struct task *task)
 void task_update_days_repeat(char new_day, struct task *task)
 {
     time_t date, now;
-    char prev_day, days_diff;
+    char days_diff;
     now = time(NULL);
     date = task->creation_time;
-    prev_day = localtime(&date)->tm_wday;
     task->rep_days ^= 1 << new_day;
     if (task->rep_days & (1 << new_day)) {
         long prev_date, new_date, today_date;
@@ -180,7 +151,8 @@ void task_update_days_repeat(char new_day, struct task *task)
             task->creation_time = days_to_sec(new_date);
         }
     } else {
-        char nday;
+        char nday, prev_day;
+        prev_day = localtime(&date)->tm_wday;
         nday = next_repeat_day(date, task->rep_days);
         days_diff = (nday - prev_day + 7) % 7;
         date += days_to_sec(days_diff);
