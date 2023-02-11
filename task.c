@@ -60,6 +60,18 @@ time_t task_repeat_date(const struct task *task)
     return task->creation_time;
 }
 
+static char next_repeat_day(time_t date, char rep_days)
+{
+    char c_wday, day;
+    c_wday = localtime(&date)->tm_wday;
+    if (rep_days & (1 << c_wday))
+        return c_wday;
+    for (day = (c_wday + 1) % 7; day != c_wday; day = (day + 1) % 7)
+        if (rep_days & (1 << day))
+            return day;
+    return -1;
+}
+
 time_t get_next_repeat(const struct task *task)
 {
     if (task->rep_days) {
@@ -67,14 +79,9 @@ time_t get_next_repeat(const struct task *task)
         time_t date;
         date = task->creation_time + days_to_sec(1);
         c_wday = localtime(&date)->tm_wday;
-        if (task->rep_days & (1 << c_wday))
-            return date;
-        days_diff = 1;
-        for (day = c_wday % 7 + 1; day != c_wday; day = day % 7 + 1) {
-            if (task->rep_days & (1 << day))
-                return date + days_to_sec(days_diff);
-            days_diff++;
-        }
+        day = next_repeat_day(date, task->rep_days);
+        days_diff = (day - c_wday + 7) % 7;
+        return date + days_to_sec(days_diff); 
     } else if (task->rep_interval) {
         return task->creation_time + days_to_sec(task->rep_interval);
     }
@@ -124,18 +131,22 @@ char is_task_week(const struct task *task)
         char today, day;
         now = time(NULL);
         today = localtime(&now)->tm_wday;
+        if (today == 0)
+            today = 7;
         for (day = today; day <= 7; day++)
-            if (task->rep_days & (1 << day))
+            if (task->rep_days & (1 << (day % 7)))
                 return 1;
     } else if (task->rep_interval) {
-        long today, creation_day, last_week_day;
+        long today, creation_date, last_week_day;
         char week_day;
         now = time(NULL);
         today = sec_to_days(now);
         week_day = localtime(&now)->tm_wday;
+        if (week_day == 0)
+            week_day = 7;
         last_week_day = today + (7 - week_day);
-        creation_day = sec_to_days(task->creation_time);
-        return creation_day + task->rep_interval <= last_week_day;
+        creation_date = sec_to_days(task->creation_time);
+        return creation_date + task->rep_interval <= last_week_day;
     }
     return 0;
 }
@@ -147,39 +158,32 @@ void task_unrepeat(struct task *task)
     task->creation_time = time(NULL);
 }
 
-static char is_wday_in_interval(char wday, char l_bound, char r_bound)
-{
-    return (wday >= l_bound && wday <= r_bound) ||
-           (wday >= l_bound && r_bound < l_bound && wday >= r_bound) ||
-           (wday <= l_bound && wday <= r_bound);
-}
-
 void task_update_days_repeat(char new_day, struct task *task)
 {
-    char prev_day, today, nday, days_diff;
     time_t date, now;
+    char prev_day, days_diff;
     now = time(NULL);
-    today = localtime(&now)->tm_wday;
     date = task->creation_time;
     prev_day = localtime(&date)->tm_wday;
-    nday = new_day;
-    if (task->rep_days & (1 << new_day)) {
-        /* 
-        - find closest day and update creation_time
-        for (day = (new_day + 1) % 7; day != new_day % 7; day = day % 7 + 1)
-           if (task->rep_days & (1 << day))
-               return 1;
-       */
-    } else {
-        nday = new_day % 7;
-        days_diff = (nday - today + 7) % 7;
-        date = now + days_to_sec(days_diff);
-        if (!task->rep_days || 
-            (is_wday_in_interval(nday, today, prev_day) &&
-                task->creation_time > date))
-        {
-            task->creation_time = date;
-        }
-    }
     task->rep_days ^= 1 << new_day;
+    if (task->rep_days & (1 << new_day)) {
+        long prev_date, new_date, today_date;
+        char today_wday;
+        today_wday = localtime(&now)->tm_wday;
+        days_diff = (new_day - today_wday + 7) % 7;
+        prev_date = sec_to_days(date);
+        today_date = sec_to_days(now);
+        new_date = today_date + days_diff;
+        if (!(task->rep_days ^ (1 << new_day)) || 
+            (new_date < prev_date))
+        {
+            task->creation_time = days_to_sec(new_date);
+        }
+    } else {
+        char nday;
+        nday = next_repeat_day(date, task->rep_days);
+        days_diff = (nday - prev_day + 7) % 7;
+        date += days_to_sec(days_diff);
+        task->creation_time = date;
+    }
 }

@@ -371,7 +371,7 @@ static void set_task_repeat_day(int pos, char day, struct todolist *list)
         task.rep_days = 0;
         task.creation_time = time(NULL);
     } else {
-        task_update_days_repeat(day, &task);
+        task_update_days_repeat(day % 7, &task);
     }
     storage_set_task(task_item->id, &task, &list->storage); 
     update_todolist_view(list->view, list);
