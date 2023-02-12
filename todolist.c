@@ -442,9 +442,9 @@ static void command_move(char **params, int params_cnt,
         int pos; 
         pos = param_to_num(params[1]) - list_view_start_pos;
         if (isdigit(params[2][0])) {
-            project_id proj_id;
-            proj_id = param_to_num(params[2]);
-            move_task_to_project(pos, proj_id, list);
+            project_id proj_pos;
+            proj_pos = param_to_num(params[2]) - list_view_start_pos;
+            move_task_to_project(pos, proj_pos, list);
         } else {
             move_task_to_folder(pos, params[2][0], list);
         }
