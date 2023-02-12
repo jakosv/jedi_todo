@@ -345,6 +345,7 @@ void print_task_help()
     printf("%c%c [pos] [interval] [start_in] - repeat task with the"
            " interval starting in (start_in) days\n", 
            c_set, c_set_repeat_interval);
+    printf("%c%c [pos] - cancel task repeat\n", c_set, c_set_unrepeat);
 }
 
 void print_project_help()

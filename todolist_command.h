@@ -19,6 +19,7 @@ enum commands {
     c_set_pos               = 'p',
     c_set_repeat_interval   = 'i',
     c_set_repeat_day        = 'r',
+    c_set_unrepeat          = 'u',
     c_all_tasks             = 'l',
     c_today_tasks           = 't',
     c_week_tasks            = 'w',
@@ -38,6 +39,7 @@ enum command_params_count {
     pcnt_set_green           = 2,
     pcnt_set_repeat_interval = 3,
     pcnt_set_repeat_day      = 3,
+    pcnt_set_unrepeat        = 2,
     pcnt_show_project        = 2,
     pcnt_show_completed      = 2,
     pcnt_show_info           = 2

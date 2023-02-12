@@ -330,6 +330,17 @@ static void set_task_repeat_day(int pos, char day, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
+static void cancel_task_repeat(int pos, struct todolist *list)
+{
+    struct tl_item *task_item;
+    struct task task;
+    task_item = tl_get_item(pos, &list->tasks);
+    task = task_item->data;
+    task_unrepeat(&task);
+    storage_set_task(task_item->id, &task, &list->storage); 
+    update_todolist_view(list->view, list);
+}
+
 static void task_info(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
@@ -505,6 +516,17 @@ static void command_set_repeat_day(char **params, int params_cnt,
     }
 }
 
+static void command_set_unrepeat(char **params, int params_cnt, 
+                                                    struct todolist *list)
+{
+    if (params_cnt >= pcnt_set_unrepeat) {
+        int pos; 
+        pos = param_to_num(params[1]) - list_view_start_pos;
+        if (list->view == view_projects)
+            return;
+        cancel_task_repeat(pos, list);
+    }
+}
 static void command_show_project(char **params, int params_cnt, 
                                                     struct todolist *list)
 {
@@ -568,6 +590,11 @@ static void command_set(char cmd, char **params, int params_cnt,
         break;
     case c_set_repeat_day:
         command_set_repeat_day(params, params_cnt, list);
+        break;
+    case c_set_unrepeat:
+        command_set_unrepeat(params, params_cnt, list);
+        break;
+    default:
         break;
     }
 }
