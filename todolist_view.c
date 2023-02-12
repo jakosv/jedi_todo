@@ -1,4 +1,5 @@
 #include "todolist_view.h"
+#include "todolist_command.h"
 #include "task_list.h"
 #include "project_list.h"
 #include "task.h"
@@ -119,7 +120,7 @@ static void print_project(const struct project *project)
     printf("%s\n", project->name);
 }
 
-static void print_decor_title(const char *name)
+static void print_view_title(const char *name)
 {
     int i, decor_size;
     decor_size = (title_size - (strlen(name) + 2) + 1) / 2;
@@ -132,7 +133,7 @@ static void print_decor_title(const char *name)
     putchar('\n');
 }
 
-static void print_decor_bottom()
+static void print_view_bottom()
 {
     int i;
     for (i = 0; i < title_size; i++)
@@ -163,96 +164,103 @@ void show_today_tasks(const struct task_list *lst)
     enum { max_today_title_size = 30 };
     struct tl_item *tmp;
     char title[max_today_title_size];
-    task_id pos = list_start_pos;
+    task_id pos;
+    pos = list_view_start_pos;
     gen_today_tasks_title(title, max_today_title_size);
-    print_decor_title(title);
+    print_view_title(title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_today_list_task(&tmp->data);
         pos++;
     }
-    print_decor_bottom();
+    print_view_bottom();
 }
 
 void show_week_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
-    task_id pos = list_start_pos;
-    print_decor_title(week_list_title);
+    task_id pos;
+    pos = list_view_start_pos;
+    print_view_title(week_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_week_list_task(&tmp->data);
         pos++;
     }
-    print_decor_bottom();
+    print_view_bottom();
 }
 
 void show_all_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
-    task_id pos = list_start_pos;
-    print_decor_title(all_list_title);
+    task_id pos;
+    pos = list_view_start_pos;
+    print_view_title(all_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
         pos++;
     }
-    print_decor_bottom();
+    print_view_bottom();
 }
 
 void show_completed_tasks(const struct task_list *lst)
 {
     struct tl_item *tmp;
-    task_id pos = list_start_pos;
-    print_decor_title(completed_list_title);
+    task_id pos;
+    pos = list_view_start_pos;
+    print_view_title(completed_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_completed_list_task(&tmp->data);
         pos++;
     }
-    print_decor_bottom();
+    print_view_bottom();
 }
 
 void show_project_tasks(const struct task_list *lst, const char *proj_name)
 {
     struct tl_item *tmp;
-    task_id pos = list_start_pos;
-    print_decor_title(proj_name);
+    task_id pos;
+    pos = list_view_start_pos;
+    print_view_title(proj_name);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_all_list_task(&tmp->data);
         pos++;
     }
-    print_decor_bottom();
+    print_view_bottom();
 }
 
 void show_project_completed_tasks(const struct task_list *lst,
                                                     const char *proj_name)
 {
     struct tl_item *tmp;
-    task_id pos = list_start_pos;
+    task_id pos;
     char title[50 + max_project_name_len];
+    pos = list_view_start_pos;
     concat_titles(title, sizeof(title), "Completed: ", proj_name);
-    print_decor_title(title);
+    print_view_title(title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_completed_list_task(&tmp->data);
         pos++;
     }
-    print_decor_bottom();
+    print_view_bottom();
 }
 
 void show_projects(const struct project_list *lst)
 {
     struct pl_item *tmp;
-    task_id pos = list_start_pos;
-    print_decor_title(projects_list_title);
+    task_id pos;
+    pos = list_view_start_pos;
+    print_view_title(projects_list_title);
     for (tmp = lst->first; tmp; tmp = tmp->next) {
         print_position(pos);
         print_project(&tmp->data);
         pos++;
     }
-    print_decor_bottom();
+    print_view_bottom();
 }
 
 static void print_description(const char *description)
@@ -292,10 +300,10 @@ void show_task_info(const struct task *task)
     enum { task_title_size = 20 + max_task_name_len };
     char title[task_title_size];
     concat_titles(title, task_title_size, "Task: ", task->name);
-    print_decor_title(title);
+    print_view_title(title);
     print_description(task->description);
     print_task_repeat_info(task);
-    print_decor_bottom();
+    print_view_bottom();
 }
 
 void show_project_info(const struct project *proj)
@@ -303,7 +311,66 @@ void show_project_info(const struct project *proj)
     enum { proj_title_size = 20 + max_project_name_len };
     char title[proj_title_size];
     concat_titles(title, proj_title_size, "Project: ", proj->name);
-    print_decor_title(title);
+    print_view_title(title);
     print_description(proj->description);
-    print_decor_bottom();
+    print_view_bottom();
+}
+
+void show_command_prompt()
+{
+    printf("> ");
+}
+
+void print_task_help()
+{
+    print_view_title("Task commands");
+    printf("%c - all tasks\n", c_all_tasks);
+    printf("%c - today tasks\n", c_today_tasks);
+    printf("%c - week tasks\n", c_week_tasks);
+    printf("%c - completed tasks\n", c_completed_tasks);
+    printf("%c [name] - add task\n", c_add);
+    printf("%c [pos] - remove task\n", c_remove);
+    printf("%c [pos] - done task\n", c_done);
+    printf("%c [pos] [t/w/n] - move task to list (t - today list /"
+                               " w - week list / n - none)\n", c_move);
+    printf("%c [pos] [project_pos] - move task to project\n", c_move);
+    printf("%c%c [pos] [name] - set task name\n", c_set, c_set_name);
+    printf("%c%c [pos] [description] - set task description\n", 
+                                            c_set, c_set_description);
+    printf("%c%c [pos] - set task green\n", c_set, c_set_green);
+    printf("%c%c [pos] [new_pos] - set task list postion\n", 
+                                                c_set, c_set_pos);
+    printf("%c%c [pos] [week_day_number]- repeat task on (1 - Monday,"
+           " ..., 7 - Sunday)\n", c_set, c_set_repeat_day);
+    printf("%c%c [pos] [interval] [start_in] - repeat task with the"
+           " interval starting in (start_in) days\n", 
+           c_set, c_set_repeat_interval);
+}
+
+void print_project_help()
+{
+    print_view_title("Project commands");
+    printf("%c - all projects\n", c_project);
+    printf("%c [pos] - project tasks\n", c_project);
+    printf("%c [pos] - completed project tasks\n", c_completed_tasks);
+    printf("%c [name] - add project\n", c_add);
+    printf("%c [pos] - remove project\n", c_remove);
+    printf("%c%c [pos] [name] - set project name\n", c_set, c_set_name);
+    printf("%c%c [pos] [description] - set project description\n", 
+                                            c_set, c_set_description);
+    printf("%c%c [pos] [new_pos] - set project postion\n", 
+                                            c_set, c_set_pos);
+}
+
+void show_help()
+{
+    print_view_title("Help");
+    printf("All command are performs on the last displayed list of"
+           " tasks/projects\n");
+    print_view_title("Base commands");
+    printf("%c - help\n", c_help);
+    printf("%c - quit\n", c_quit);
+    print_task_help();
+    print_project_help();
+    print_view_bottom();
 }

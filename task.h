@@ -6,8 +6,8 @@
 #include <time.h>
 
 enum { 
-    max_task_name_len = 81,
-    max_task_descript_len = 100
+    max_task_name_len = 128,
+    max_task_descript_len = 256
 };
 enum task_folder { tf_none, tf_today, tf_week };
 
@@ -36,6 +36,8 @@ time_t get_next_repeat(const struct task *task);
 char is_task_today(const struct task *task);
 char is_task_week(const struct task *task);
 void task_unrepeat(struct task *task);
-void task_update_days_repeat(char new_day, struct task *task);
+void task_add_repeat_interval(int interval, int start_in, 
+                                                    struct task *task);
+void task_update_repeat_days(char new_day, struct task *task);
 
 #endif

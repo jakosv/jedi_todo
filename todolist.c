@@ -1,5 +1,6 @@
 #include "todolist.h"
 #include "todolist_view.h"
+#include "todolist_command.h"
 #include "task.h"
 #include "project.h"
 
@@ -7,47 +8,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-
-enum {
-    max_cmd_len = 200, 
-    max_params_cnt = max_cmd_len
-};
-
-enum commands {
-    c_quit                  = 'q',
-    c_add                   = 'a',
-    c_remove                = 'r',
-    c_done                  = 'd',
-    c_move                  = 'm',
-    c_set                   = 's',
-    c_set_name              = 'n',
-    c_set_description       = 'd',
-    c_set_green             = 'g',
-    c_set_pos               = 'p',
-    c_set_repeat_interval   = 'i',
-    c_set_repeat_day        = 'r',
-    c_all_tasks             = 'l',
-    c_today_tasks           = 't',
-    c_week_tasks            = 'w',
-    c_completed_tasks       = 'c',
-    c_projects              = 'p',
-    c_info                  = 'i'
-};
-
-enum command_params_count {
-    pcnt_add                 = 2,
-    pcnt_remove              = 2,
-    pcnt_done                = 2,
-    pcnt_move                = 3,
-    pcnt_set_name            = 3,
-    pcnt_set_pos             = 3,
-    pcnt_set_green           = 2,
-    pcnt_set_repeat_interval = 3,
-    pcnt_set_repeat_day      = 3,
-    pcnt_show_project        = 2,
-    pcnt_show_completed      = 2,
-    pcnt_show_info           = 2
-};
 
 void todolist_init(struct todolist *list)
 {
@@ -182,7 +142,7 @@ static void add_project(const char *name, struct todolist *list)
 static void remove_task(int pos, struct todolist *list)
 {
     task_id id;
-    id = tl_get_item(pos - 1, &list->tasks)->id;
+    id = tl_get_item(pos, &list->tasks)->id;
     storage_delete_task(id, &list->storage); 
     update_todolist_view(list->view, list);
 }
@@ -192,7 +152,7 @@ static void remove_tasks_from_project(int pos, struct todolist *list)
     project_id id;
     struct task_list project_tasks;
     struct tl_item *tmp;
-    id = pl_get_item(pos - 1, &list->projects)->id;
+    id = pl_get_item(pos, &list->projects)->id;
     tl_init(&project_tasks);
     storage_get_project_tasks(id, &project_tasks, &list->storage); 
     tmp = project_tasks.first;
@@ -206,7 +166,7 @@ static void remove_tasks_from_project(int pos, struct todolist *list)
 static void remove_project(int pos, struct todolist *list)
 {
     project_id id;
-    id = pl_get_item(pos - 1, &list->projects)->id;
+    id = pl_get_item(pos, &list->projects)->id;
     storage_delete_project(id, &list->storage); 
     update_todolist_view(list->view, list);
 }
@@ -216,7 +176,7 @@ static void rename_task(int pos, const char *name,
 {
     struct tl_item *task_item;
     struct task new_task;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     new_task = task_item->data;
     strlcpy(new_task.name, name, max_task_name_len);
     storage_set_task(task_item->id, &new_task, &list->storage); 
@@ -228,7 +188,7 @@ static void rename_project(int pos, const char *name,
 {
     struct pl_item *proj_item;
     struct project proj;
-    proj_item = pl_get_item(pos - list_start_pos, &list->projects);
+    proj_item = pl_get_item(pos, &list->projects);
     proj = proj_item->data;
     strlcpy(proj.name, name, max_project_name_len);
     storage_set_project(proj_item->id, &proj, &list->storage); 
@@ -240,7 +200,7 @@ static void set_task_description(int pos, const char *description,
 {
     struct tl_item *task_item;
     struct task new_task;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     new_task = task_item->data;
     strlcpy(new_task.description, description, max_task_descript_len);
     storage_set_task(task_item->id, &new_task, &list->storage); 
@@ -252,7 +212,7 @@ static void set_project_description(int pos, const char *description,
 {
     struct pl_item *proj_item;
     struct project proj;
-    proj_item = pl_get_item(pos - list_start_pos, &list->projects);
+    proj_item = pl_get_item(pos, &list->projects);
     proj = proj_item->data;
     strlcpy(proj.description, description, max_project_descript_len);
     storage_set_project(proj_item->id, &proj, &list->storage); 
@@ -263,7 +223,7 @@ static void done_task(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
     struct task task;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     task = task_item->data;
     task.done = task.done ? 0 : 1;
     storage_set_task(task_item->id, &task, &list->storage); 
@@ -281,10 +241,10 @@ static void move_task_to_project(int pos, project_id project_pos,
     struct tl_item *task_item;
     struct pl_item *project_item;
     struct task new_task;
-    project_item = pl_get_item(project_pos - 1, &list->projects);
+    project_item = pl_get_item(project_pos, &list->projects);
     if (!project_item)
         return;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     new_task = task_item->data;
     new_task.has_project = 1;
     new_task.pid = project_item->id;
@@ -296,7 +256,7 @@ static void move_task_to_folder(int pos, char to, struct todolist *list)
 {
     struct tl_item *task_item;
     struct task new_task;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     new_task = task_item->data;
     if (is_task_repeating(&new_task)) {
         new_task.creation_time = get_next_repeat(&new_task);
@@ -324,8 +284,8 @@ static void set_task_pos(int pos, int new_pos, struct todolist *list)
 {
     struct tl_item *first_task_item, *second_task_item;
     struct task first_task, second_task;
-    first_task_item = tl_get_item(pos - 1, &list->tasks);
-    second_task_item = tl_get_item(new_pos - 1, &list->tasks);
+    first_task_item = tl_get_item(pos, &list->tasks);
+    second_task_item = tl_get_item(new_pos, &list->tasks);
     first_task = first_task_item->data;
     second_task = second_task_item->data;
     storage_set_task(first_task_item->id, &second_task, &list->storage); 
@@ -337,7 +297,7 @@ static void set_task_green(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
     struct task new_task;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     new_task = task_item->data;
     new_task.green = new_task.green ? 0 : 1;
     storage_set_task(task_item->id, &new_task, &list->storage); 
@@ -349,7 +309,7 @@ static void set_task_repeat_interval(int pos, int interval, int start_in,
 {
     struct tl_item *task_item;
     struct task task;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     task = task_item->data;
     task_add_repeat_interval(interval, start_in, &task);
     storage_set_task(task_item->id, &task, &list->storage); 
@@ -360,7 +320,7 @@ static void set_task_repeat_day(int pos, char day, struct todolist *list)
 {
     struct tl_item *task_item;
     struct task task;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     task = task_item->data;
     if (day == 0)
         task_unrepeat(&task);
@@ -373,14 +333,14 @@ static void set_task_repeat_day(int pos, char day, struct todolist *list)
 static void task_info(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
-    task_item = tl_get_item(pos - 1, &list->tasks);
+    task_item = tl_get_item(pos, &list->tasks);
     show_task_info(&task_item->data);
 }
 
 static void project_info(int pos, struct todolist *list)
 {
     struct pl_item *project_item;
-    project_item = pl_get_item(pos - 1, &list->projects);
+    project_item = pl_get_item(pos, &list->projects);
     show_project_info(&project_item->data);
 }
 
@@ -388,8 +348,8 @@ static void set_project_pos(int pos, int new_pos, struct todolist *list)
 {
     struct pl_item *first_project_item, *second_project_item;
     struct project first_project, second_project;
-    first_project_item = pl_get_item(pos - 1, &list->projects);
-    second_project_item = pl_get_item(new_pos - 1, &list->projects);
+    first_project_item = pl_get_item(pos, &list->projects);
+    second_project_item = pl_get_item(new_pos, &list->projects);
     first_project = first_project_item->data;
     second_project = second_project_item->data;
     storage_set_project(first_project_item->id, &second_project, 
@@ -397,77 +357,6 @@ static void set_project_pos(int pos, int new_pos, struct todolist *list)
     storage_set_project(second_project_item->id, &first_project, 
                                                         &list->storage); 
     update_todolist_view(list->view, list);
-}
-
-static void read_command(char *cmd, int len)
-{
-    int c, i;
-    i = 0;
-    while ((c = getchar()) != EOF) {
-        if (c == '\n' || i >= len - 1)
-            break;
-        cmd[i] = c; 
-        i++;
-    }
-    cmd[i] = '\0';
-}
-
-static void parse_command(const char *cmd, char **params, int *parse_cnt)
-{
-    int i, param_len;
-    char *param;
-    param = malloc(strlen(cmd) + 1);
-    param_len = 0;
-    *parse_cnt = 0;
-    for (i = 0; cmd[i]; i++) {
-        if (cmd[i] == ' ' && param_len > 0) {
-            param[param_len] = '\0';
-            strlcpy(params[*parse_cnt], param, param_len + 1);
-            (*parse_cnt)++;
-            param_len = 0;
-        } else {
-            param[param_len] = cmd[i];
-            param_len++;
-        }
-    }
-    if (param_len > 0) {
-        param[param_len] = '\0';
-        strlcpy(params[*parse_cnt], param, param_len + 1);
-        (*parse_cnt)++;
-    }
-    free(param);
-}
-
-static void params_array_init(char **params, int size)
-{
-    int i;
-    for (i = 0; i < size; i++)
-        params[i] = malloc(max_cmd_len);
-}
-
-static void params_array_free(char **params, int size)
-{
-    int i;
-    for (i = 0; i < size; i++)
-        free(params[i]);
-}
-
-static void concat_params(int from, char **params, int *params_cnt)
-{
-    int i;
-    for (i = from + 1; i < *params_cnt; i++) {
-        strlcat(params[from], " ", max_cmd_len);
-        strlcat(params[from], params[i], max_cmd_len);
-    } 
-    *params_cnt = from + 1;
-}
-
-static long param_to_num(const char *param)
-{
-    long num; 
-    char *end;
-    num = strtol(param, &end, 10);
-    return num;
 }
 
 static void command_add(char **params, int params_cnt, 
@@ -487,7 +376,7 @@ static void command_remove(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_remove) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         if (list->view == view_projects) {
             remove_tasks_from_project(pos, list);
             remove_project(pos, list);
@@ -502,7 +391,7 @@ static void command_rename(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_set_name) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         concat_params(2, params, &params_cnt);
         if (list->view == view_projects)
             rename_project(pos, params[2], list);
@@ -516,7 +405,7 @@ static void command_set_description(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_set_name) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         concat_params(2, params, &params_cnt);
         if (list->view == view_projects)
             set_project_description(pos, params[2], list);
@@ -530,7 +419,7 @@ static void command_done(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_done) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         done_task(pos, list);
     }
 }
@@ -540,7 +429,7 @@ static void command_move(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_move) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         if (isdigit(params[2][0])) {
             project_id proj_id;
             proj_id = param_to_num(params[2]);
@@ -556,10 +445,10 @@ static void command_set_pos(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_set_pos) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         if (isdigit(params[2][0])) {
             task_id new_pos;
-            new_pos = param_to_num(params[2]);
+            new_pos = param_to_num(params[2]) - list_view_start_pos;
             if (list->view == view_projects)
                 set_project_pos(pos, new_pos, list);
             else
@@ -573,7 +462,7 @@ static void command_set_green(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_set_green) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         if (list->view == view_projects)
             return;
         set_task_green(pos, list);
@@ -585,7 +474,7 @@ static void command_set_repeat_interval(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_set_repeat_interval) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         if (list->view == view_projects)
             return;
         if (isdigit(params[2][0])) {
@@ -604,7 +493,7 @@ static void command_set_repeat_day(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_set_repeat_day) {
         int pos; 
-        pos = param_to_num(params[1]);
+        pos = param_to_num(params[1]) - list_view_start_pos;
         if (list->view == view_projects)
             return;
         if (isdigit(params[2][0])) {
@@ -621,9 +510,8 @@ static void command_show_project(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_show_project) {
         if (isdigit(params[1][0])) {
-            int pos; 
-            pos = param_to_num(params[1]);
-            list->cur_project = pos - 1;
+            list->cur_project = 
+                param_to_num(params[1]) - list_view_start_pos;
             update_todolist_view(view_project_tasks, list);
         }
     } else {
@@ -636,9 +524,8 @@ static void command_show_completed(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_show_completed) {
         if (isdigit(params[1][0])) {
-            int pos; 
-            pos = param_to_num(params[1]);
-            list->cur_project = pos - 1;
+            list->cur_project =
+                param_to_num(params[1]) - list_view_start_pos;
             update_todolist_view(view_project_completed_tasks, list);
         }
     } else {
@@ -652,7 +539,7 @@ static void command_show_info(char **params, int params_cnt,
     if (params_cnt >= pcnt_show_info) {
         if (isdigit(params[1][0])) {
             int pos; 
-            pos = param_to_num(params[1]);
+            pos = param_to_num(params[1]) - list_view_start_pos;
             if (list->view == view_projects)
                 project_info(pos, list);
             else
@@ -685,11 +572,6 @@ static void command_set(char cmd, char **params, int params_cnt,
     }
 }
 
-static void print_prompt()
-{
-    printf("> ");
-}
-
 void todolist_main_loop(struct todolist *list)
 {
     char cmd[max_cmd_len];
@@ -699,7 +581,7 @@ void todolist_main_loop(struct todolist *list)
     do {
         show_list(list);
         
-        print_prompt();
+        show_command_prompt();
         read_command(cmd, max_cmd_len);
         parse_command(cmd, params, &params_cnt); 
 
@@ -731,13 +613,19 @@ void todolist_main_loop(struct todolist *list)
         case c_completed_tasks:
             command_show_completed(params, params_cnt, list);
             break;
-        case c_projects:
+        case c_project:
             command_show_project(params, params_cnt, list);
             break;
         case c_info:
             command_show_info(params, params_cnt, list);
             break;
+        case c_help:
+            show_help(); 
+            break;
+        case c_quit:
+            break;
         default:
+            show_help(); 
             break;
         }
     } while (cmd[0] != c_quit);

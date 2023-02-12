@@ -4,8 +4,8 @@
 typedef unsigned project_id;
 
 enum { 
-    max_project_name_len = 81,
-    max_project_descript_len = 100
+    max_project_name_len = 96,
+    max_project_descript_len = 256
 };
 
 struct project {

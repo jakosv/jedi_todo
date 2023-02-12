@@ -130,7 +130,8 @@ void task_unrepeat(struct task *task)
     task->creation_time = time(NULL);
 }
 
-void task_add_repeat_interval(int interval, int start_in, struct task *task)
+void task_add_repeat_interval(int interval, int start_in, 
+                                                    struct task *task)
 {
     time_t now;
     now = time(NULL);
