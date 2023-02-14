@@ -15,7 +15,10 @@ enum view_state {
     view_completed_tasks,
     view_projects,
     view_project_tasks,
-    view_project_completed_tasks
+    view_project_completed_tasks,
+    view_help,
+    view_task_info,
+    view_project_info
 };
 
 

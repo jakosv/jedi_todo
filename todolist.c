@@ -16,7 +16,7 @@ void todolist_init(struct todolist *list)
     pl_init(&list->projects);
     storage_get_all_tasks(&list->tasks, &list->storage);
     storage_get_all_projects(&list->projects, &list->storage);
-    list->view = view_all_tasks;
+    list->view = view_today_tasks;
 }
 
 void todolist_destroy(struct todolist *list)
@@ -56,7 +56,7 @@ static void show_list(const struct todolist *list)
         show_project_completed_tasks(&list->tasks, project_name);
         break;
     default:
-        show_today_tasks(&list->tasks);
+        break;
     }
 }
 
@@ -95,7 +95,7 @@ static void update_todolist_view(enum view_state view,
                                                         &list->storage);
         break;
     default:
-        storage_get_all_tasks(&list->tasks, &list->storage);
+        break;
     }
 }
 
@@ -527,17 +527,42 @@ static void command_set_unrepeat(char **params, int params_cnt,
         cancel_task_repeat(pos, list);
     }
 }
+
+static void command_show_today_tasks(struct todolist *list)
+{
+    if (list->view != view_today_tasks)
+        update_todolist_view(view_today_tasks, list);
+}
+
+static void command_show_all_tasks(struct todolist *list)
+{
+    if (list->view != view_all_tasks)
+        update_todolist_view(view_all_tasks, list);
+}
+
+static void command_show_week_tasks(struct todolist *list)
+{
+    if (list->view != view_week_tasks)
+        update_todolist_view(view_week_tasks, list);
+}
+
 static void command_show_project(char **params, int params_cnt, 
                                                     struct todolist *list)
 {
     if (params_cnt >= pcnt_show_project) {
         if (isdigit(params[1][0])) {
-            list->cur_project = 
-                param_to_num(params[1]) - list_view_start_pos;
-            update_todolist_view(view_project_tasks, list);
+            project_id pos;
+            pos = param_to_num(params[1]) - list_view_start_pos;
+            if (list->view != view_project_tasks ||
+                list->cur_project != pos) 
+            {
+                list->cur_project = pos;
+                update_todolist_view(view_project_tasks, list);
+            }
         }
     } else {
-        update_todolist_view(view_projects, list);
+        if (list->view != view_projects)
+            update_todolist_view(view_projects, list);
     }
 } 
 
@@ -546,12 +571,18 @@ static void command_show_completed(char **params, int params_cnt,
 {
     if (params_cnt >= pcnt_show_completed) {
         if (isdigit(params[1][0])) {
-            list->cur_project =
-                param_to_num(params[1]) - list_view_start_pos;
-            update_todolist_view(view_project_completed_tasks, list);
+            project_id pos;
+            pos = param_to_num(params[1]) - list_view_start_pos;
+            if (list->view != view_project_completed_tasks ||
+                list->cur_project != pos) 
+            {
+                list->cur_project = pos;
+                update_todolist_view(view_project_completed_tasks, list);
+            }
         }
     } else {
-        update_todolist_view(view_completed_tasks, list);
+        if (list->view != view_completed_tasks)
+            update_todolist_view(view_completed_tasks, list);
     }
 } 
 
@@ -562,10 +593,13 @@ static void command_show_info(char **params, int params_cnt,
         if (isdigit(params[1][0])) {
             int pos; 
             pos = param_to_num(params[1]) - list_view_start_pos;
-            if (list->view == view_projects)
+            if (list->view == view_projects) {
                 project_info(pos, list);
-            else
+                update_todolist_view(view_task_info, list);
+            } else {
                 task_info(pos, list);
+                update_todolist_view(view_project_info, list);
+            }
         }
     }
 } 
@@ -629,13 +663,13 @@ void todolist_main_loop(struct todolist *list)
             command_move(params, params_cnt, list);
             break;
         case c_today_tasks:
-            update_todolist_view(view_today_tasks, list);
+            command_show_today_tasks(list);
             break;
         case c_all_tasks:
-            update_todolist_view(view_all_tasks, list);
+            command_show_all_tasks(list);
             break;
         case c_week_tasks:
-            update_todolist_view(view_week_tasks, list);
+            command_show_week_tasks(list);
             break;
         case c_completed_tasks:
             command_show_completed(params, params_cnt, list);
@@ -647,6 +681,7 @@ void todolist_main_loop(struct todolist *list)
             command_show_info(params, params_cnt, list);
             break;
         case c_help:
+            update_todolist_view(view_help, list);
             show_help(); 
             break;
         case c_quit:
