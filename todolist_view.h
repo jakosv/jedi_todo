@@ -18,7 +18,8 @@ enum view_state {
     view_project_completed_tasks,
     view_help,
     view_task_info,
-    view_project_info
+    view_project_info,
+    view_message
 };
 
 
@@ -33,6 +34,8 @@ void show_projects(const struct project_list *lst);
 void show_task_info(const struct task *task);
 void show_project_info(const struct project *proj);
 void show_command_prompt();
+void show_message(const char *msg);
+void show_error(const char *msg);
 void show_help();
 
 #endif

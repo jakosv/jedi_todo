@@ -59,6 +59,29 @@ static void write_records_array(struct record *records, unsigned num,
     }
 }
 
+
+void db_import_data(const char *path, struct database *db)
+{
+    
+}
+
+int db_export_data(const char *path, struct database *db)
+{
+    struct record *records;
+    unsigned records_count;
+    FILE *f;
+    f = fopen(path, "wb");
+    if (!f) {
+        return 0;    
+    } 
+    records_count = db->records_count - db->deleted_count;
+    records = malloc(records_count * sizeof(struct record));
+    db_fetch_all_records(&records, records_count, db);
+    write_records_array(records, records_count, f);
+    free(records);
+    return 1;
+}
+
 void db_close(struct database *db)
 {
     if (db->deleted_count > 0) {
@@ -68,8 +91,9 @@ void db_close(struct database *db)
         records = malloc(records_count * sizeof(struct record));
         db_fetch_all_records(&records, records_count, db);
         fclose(db->file);
-        db->file = fopen(db->path, "w+b"); 
+        db->file = fopen(db->path, "wb"); 
         write_records_array(records, records_count, db->file);
+        free(records);
     } 
     fclose(db->file);
     db->records_count = 0;

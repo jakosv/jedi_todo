@@ -370,6 +370,17 @@ static void set_project_pos(int pos, int new_pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
+static void make_backup(const char *dest, struct todolist *list)
+{
+    int res;
+    res = storage_backup(dest, &list->storage); 
+    if (!res)
+        show_error("Error: Unable to backup");
+    else
+        show_message("Backup completed");
+    update_todolist_view(view_message, list);
+}
+
 static void command_add(char **params, int params_cnt, 
                                                 struct todolist *list) 
 {
@@ -604,6 +615,15 @@ static void command_show_info(char **params, int params_cnt,
     }
 } 
 
+static void command_backup(char **params, int params_cnt, 
+                                                    struct todolist *list)
+{
+    if (params_cnt >= pcnt_backup) {
+        concat_params(1, params, &params_cnt);
+        make_backup(params[1], list);
+    }
+} 
+
 static void command_set(char cmd, char **params, int params_cnt, 
                                                     struct todolist *list)
 {
@@ -679,6 +699,9 @@ void todolist_main_loop(struct todolist *list)
             break;
         case c_info:
             command_show_info(params, params_cnt, list);
+            break;
+        case c_backup:
+            command_backup(params, params_cnt, list);
             break;
         case c_help:
             update_todolist_view(view_help, list);

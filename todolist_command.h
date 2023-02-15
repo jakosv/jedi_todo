@@ -26,7 +26,8 @@ enum commands {
     c_completed_tasks       = 'c',
     c_project               = 'p',
     c_info                  = 'i',
-    c_help                  = 'h'
+    c_help                  = 'h',
+    c_backup                = 'b'
 };
 
 enum command_params_count {
@@ -42,7 +43,8 @@ enum command_params_count {
     pcnt_set_unrepeat        = 2,
     pcnt_show_project        = 2,
     pcnt_show_completed      = 2,
-    pcnt_show_info           = 2
+    pcnt_show_info           = 2,
+    pcnt_backup              = 2
 };
 
 void read_command(char *cmd, int len);

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <time.h>
 
+#define COLOR_RED       "\x1B[31m"
 #define COLOR_GREEN     "\x1B[32m"
 #define COLOR_CYAN      "\x1B[36m"
 #define COLOR_MAGENTA   "\x1B[35m"
@@ -370,8 +371,20 @@ void show_help()
            " tasks/projects\n");
     print_view_title("Base commands");
     printf("%c - help\n", c_help);
+    printf("%c [full_file_path] - make backup (example: "
+           "> b /usr/backup.db)\n", c_backup);
     printf("%c - quit\n", c_quit);
     print_task_help();
     print_project_help();
     print_view_bottom();
+}
+
+void show_message(const char *msg)
+{
+    printf(COLOR_GREEN "%s\n" COLOR_RESET, msg);
+}
+
+void show_error(const char *msg)
+{
+    printf(COLOR_RED "%s\n" COLOR_RESET, msg);
 }

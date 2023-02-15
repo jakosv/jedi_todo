@@ -57,6 +57,12 @@ void storage_free(struct storage *st)
     pl_clear(&st->projects);
 }
 
+int storage_backup(const char *dest, struct storage *st)
+{
+    int res;
+    res = db_export_data(dest, &st->db);     
+    return res;
+}
 
 /*===== tasks functions =====*/
 
