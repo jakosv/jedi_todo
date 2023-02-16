@@ -17,7 +17,7 @@ void db_create(const char *path, struct database *db);
 int db_open(const char *path, struct database *db);
 void db_close(struct database *db);
 
-void db_import_data(const char *path, struct database *db);
+int db_import_data(const char *path, struct database *db);
 int db_export_data(const char *path, struct database *db);
 
 unsigned db_count_records(struct database *db);

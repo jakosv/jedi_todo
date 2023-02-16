@@ -27,7 +27,9 @@ enum commands {
     c_project               = 'p',
     c_info                  = 'i',
     c_help                  = 'h',
-    c_backup                = 'b'
+    c_backup                = 'b',
+    c_make_backup           = 'm',
+    c_load_backup           = 'l'
 };
 
 enum command_params_count {

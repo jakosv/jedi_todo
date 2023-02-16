@@ -16,7 +16,8 @@ struct storage {
 void storage_init(struct storage *st);
 void storage_free(struct storage *st);
 
-int storage_backup(const char *dest, struct storage *st);
+int storage_make_backup(const char *path, struct storage *st);
+int storage_load_backup(const char *path, struct storage *st);
 
 /*===== tasks functions =====*/
 void storage_add_task(struct task *new_task, struct storage *st);

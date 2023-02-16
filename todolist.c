@@ -373,11 +373,22 @@ static void set_project_pos(int pos, int new_pos, struct todolist *list)
 static void make_backup(const char *dest, struct todolist *list)
 {
     int res;
-    res = storage_backup(dest, &list->storage); 
+    res = storage_make_backup(dest, &list->storage); 
     if (!res)
-        show_error("Error: Unable to backup");
+        show_error("Error: Unable to make a backup");
     else
         show_message("Backup completed");
+    update_todolist_view(view_message, list);
+}
+
+static void load_backup(const char *dest, struct todolist *list)
+{
+    int res;
+    res = storage_load_backup(dest, &list->storage); 
+    if (!res)
+        show_error("Error: Unable to load backup");
+    else
+        show_message("Backup loading completed");
     update_todolist_view(view_message, list);
 }
 
@@ -615,12 +626,21 @@ static void command_show_info(char **params, int params_cnt,
     }
 } 
 
-static void command_backup(char **params, int params_cnt, 
+static void command_backup(char cmd, char **params, int params_cnt, 
                                                     struct todolist *list)
 {
     if (params_cnt >= pcnt_backup) {
         concat_params(1, params, &params_cnt);
-        make_backup(params[1], list);
+        switch (cmd) {
+        case c_make_backup:
+            make_backup(params[1], list);
+            break;
+        case c_load_backup:
+            load_backup(params[1], list);
+            break;
+        default:
+            break;
+        }
     }
 } 
 
@@ -701,7 +721,7 @@ void todolist_main_loop(struct todolist *list)
             command_show_info(params, params_cnt, list);
             break;
         case c_backup:
-            command_backup(params, params_cnt, list);
+            command_backup(cmd[1], params, params_cnt, list);
             break;
         case c_help:
             update_todolist_view(view_help, list);

@@ -46,6 +46,12 @@ void storage_init(struct storage *st)
     fetch_database_records(st);
 }
 
+static void storage_clear(struct storage *st)
+{
+    tl_clear(&st->tasks);
+    pl_clear(&st->projects);
+}
+
 void storage_free(struct storage *st)
 {
     if (!st) {
@@ -53,14 +59,24 @@ void storage_free(struct storage *st)
         exit(1);
     }
     db_close(&st->db);
-    tl_clear(&st->tasks);
-    pl_clear(&st->projects);
+    storage_clear(st);
 }
 
-int storage_backup(const char *dest, struct storage *st)
+int storage_make_backup(const char *path, struct storage *st)
 {
     int res;
-    res = db_export_data(dest, &st->db);     
+    res = db_export_data(path, &st->db);     
+    return res;
+}
+
+int storage_load_backup(const char *path, struct storage *st)
+{
+    int res;
+    res = db_import_data(path, &st->db);     
+    if (res) {
+        storage_clear(st);
+        fetch_database_records(st);
+    }
     return res;
 }
 
