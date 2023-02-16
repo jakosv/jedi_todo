@@ -325,43 +325,50 @@ void show_command_prompt()
 void print_task_help()
 {
     print_view_title("Task commands");
-    printf("%c - all tasks\n", c_all_tasks);
-    printf("%c - today tasks\n", c_today_tasks);
-    printf("%c - week tasks\n", c_week_tasks);
-    printf("%c - completed tasks\n", c_completed_tasks);
-    printf("%c [name] - add task\n", c_add);
-    printf("%c [pos] - remove task\n", c_remove);
-    printf("%c [pos] - done task\n", c_done);
-    printf("%c [pos] [t/w/n] - move task to list (t - today list /"
-                               " w - week list / n - none)\n", c_move);
-    printf("%c [pos] [project_pos] - move task to project\n", c_move);
-    printf("%c%c [pos] [name] - set task name\n", c_set, c_set_name);
-    printf("%c%c [pos] [description] - set task description\n", 
-                                            c_set, c_set_description);
-    printf("%c%c [pos] - set task green\n", c_set, c_set_green);
-    printf("%c%c [pos] [new_pos] - set task list postion\n", 
-                                                c_set, c_set_pos);
-    printf("%c%c [pos] [week_day_number]- repeat task on (1 - Monday,"
-           " ..., 7 - Sunday)\n", c_set, c_set_repeat_day);
-    printf("%c%c [pos] [interval] [start_in] - repeat task with the"
+    printf("%s - all tasks\n", cmd_name[c_all_tasks]);
+    printf("%s - today tasks\n", cmd_name[c_today_tasks]);
+    printf("%s - week tasks\n", cmd_name[c_week_tasks]);
+    printf("%s - completed tasks\n", cmd_name[c_completed_tasks]);
+    printf("%s [name] - add task\n", cmd_name[c_add]);
+    printf("%s [pos] - remove task\n", cmd_name[c_remove]);
+    printf("%s [pos] - done task\n", cmd_name[c_done]);
+    printf("%s [pos] [t/w/n] - move task to list (t - today list /"
+                   " w - week list / n - none)\n", cmd_name[c_move]);
+    printf("%s [pos] [project_pos] - move task to project\n", 
+                                                cmd_name[c_move]);
+    printf("%s [pos] [name] - set task name\n", 
+                        cmd_name[c_set_name]);
+    printf("%s [pos] [description] - set task description\n", 
+                cmd_name[c_set_description]);
+    printf("%s [pos] - set task green\n", 
+            cmd_name[c_set_green]);
+    printf("%s [pos] [new_pos] - set task list postion\n", 
+                    cmd_name[c_set_pos]);
+    printf("%s [pos] [week_day_number]- repeat task on (1 - Monday,"
+           " ..., 7 - Sunday)\n", 
+           cmd_name[c_repeat_day]);
+    printf("%s [pos] [interval] [start_in] - repeat task with the"
            " interval starting in (start_in) days\n", 
-           c_set, c_set_repeat_interval);
-    printf("%c%c [pos] - cancel task repeat\n", c_set, c_set_unrepeat);
+           cmd_name[c_repeat_interval]);
+    printf("%s [pos] - remove task repeat\n", 
+            cmd_name[c_repeat_remove]);
 }
 
 void print_project_help()
 {
     print_view_title("Project commands");
-    printf("%c - all projects\n", c_project);
-    printf("%c [pos] - project tasks\n", c_project);
-    printf("%c [pos] - completed project tasks\n", c_completed_tasks);
-    printf("%c [name] - add project\n", c_add);
-    printf("%c [pos] - remove project\n", c_remove);
-    printf("%c%c [pos] [name] - set project name\n", c_set, c_set_name);
-    printf("%c%c [pos] [description] - set project description\n", 
-                                            c_set, c_set_description);
-    printf("%c%c [pos] [new_pos] - set project postion\n", 
-                                            c_set, c_set_pos);
+    printf("%s - all projects\n", cmd_name[c_project]);
+    printf("%s [pos] - project tasks\n", cmd_name[c_project]);
+    printf("%s [pos] - completed project tasks\n", 
+                                cmd_name[c_completed_tasks]);
+    printf("%s [name] - add project\n", cmd_name[c_add]);
+    printf("%s [pos] - remove project\n", cmd_name[c_remove]);
+    printf("%s [pos] [name] - set project name\n", 
+                                            cmd_name[c_set_name]);
+    printf("%s [pos] [description] - set project description\n", 
+                    cmd_name[c_set_description]);
+    printf("%s [pos] [new_pos] - set project postion\n", 
+                            cmd_name[c_set_pos]);
 }
 
 void show_help()
@@ -370,10 +377,14 @@ void show_help()
     printf("All command are performs on the last displayed list of"
            " tasks/projects\n");
     print_view_title("Base commands");
-    printf("%c - help\n", c_help);
-    printf("%c [full_file_path] - make backup (example: "
-           "> b /usr/backup.db)\n", c_backup);
-    printf("%c - quit\n", c_quit);
+    printf("%s - help\n", cmd_name[c_help]);
+    printf("%s [full_file_path] - make backup (example: "
+           "> %s /usr/backup.db)\n", cmd_name[c_make_backup],
+                                        cmd_name[c_make_backup]);
+    printf("%s [full_file_path] - load backup (example: "
+           "> %s /usr/backup.db)\n", cmd_name[c_load_backup],
+                                        cmd_name[c_load_backup]);
+    printf("%s - quit\n", cmd_name[c_quit]);
     print_task_help();
     print_project_help();
     print_view_bottom();

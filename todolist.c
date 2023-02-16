@@ -14,9 +14,9 @@ void todolist_init(struct todolist *list)
     storage_init(&list->storage); 
     tl_init(&list->tasks);
     pl_init(&list->projects);
-    storage_get_all_tasks(&list->tasks, &list->storage);
-    storage_get_all_projects(&list->projects, &list->storage);
     list->view = view_today_tasks;
+    storage_get_today_tasks(&list->tasks, &list->storage);
+    storage_get_all_projects(&list->projects, &list->storage);
 }
 
 void todolist_destroy(struct todolist *list)
@@ -505,7 +505,7 @@ static void command_set_green(char **params, int params_cnt,
 static void command_set_repeat_interval(char **params, int params_cnt, 
                                                         struct todolist *list)
 {
-    if (params_cnt >= pcnt_set_repeat_interval) {
+    if (params_cnt >= pcnt_repeat_interval) {
         int pos; 
         pos = param_to_num(params[1]) - list_view_start_pos;
         if (list->view == view_projects)
@@ -524,7 +524,7 @@ static void command_set_repeat_interval(char **params, int params_cnt,
 static void command_set_repeat_day(char **params, int params_cnt, 
                                                     struct todolist *list)
 {
-    if (params_cnt >= pcnt_set_repeat_day) {
+    if (params_cnt >= pcnt_repeat_day) {
         int pos; 
         pos = param_to_num(params[1]) - list_view_start_pos;
         if (list->view == view_projects)
@@ -538,10 +538,10 @@ static void command_set_repeat_day(char **params, int params_cnt,
     }
 }
 
-static void command_set_unrepeat(char **params, int params_cnt, 
+static void command_repeat_remove(char **params, int params_cnt, 
                                                     struct todolist *list)
 {
-    if (params_cnt >= pcnt_set_unrepeat) {
+    if (params_cnt >= pcnt_repeat_remove) {
         int pos; 
         pos = param_to_num(params[1]) - list_view_start_pos;
         if (list->view == view_projects)
@@ -626,81 +626,56 @@ static void command_show_info(char **params, int params_cnt,
     }
 } 
 
-static void command_backup(char cmd, char **params, int params_cnt, 
+static void unknown_command_error(const char *cmd, struct todolist *list)
+{
+    enum { max_err_len = 2 * max_cmd_len };
+    char str[2 * max_cmd_len];
+    strlcpy(str, "Unknown command: \"", max_err_len);
+    strlcat(str, cmd, max_err_len);
+    strlcat(str, "\"\nEnter command \"h\" to view all commands", max_err_len);
+    show_error(str);
+    update_todolist_view(view_message, list);
+}
+
+static void command_make_backup(char **params, int params_cnt, 
                                                     struct todolist *list)
 {
     if (params_cnt >= pcnt_backup) {
         concat_params(1, params, &params_cnt);
-        switch (cmd) {
-        case c_make_backup:
-            make_backup(params[1], list);
-            break;
-        case c_load_backup:
-            load_backup(params[1], list);
-            break;
-        default:
-            break;
-        }
+        make_backup(params[1], list);
     }
-} 
+}
 
-static void command_set(char cmd, char **params, int params_cnt, 
+static void command_load_backup(char **params, int params_cnt, 
                                                     struct todolist *list)
 {
-    switch (cmd) {
-    case c_set_name:
-        command_rename(params, params_cnt, list);
-    case c_set_description:
-        command_set_description(params, params_cnt, list);
-        break;
-    case c_set_pos:
-        command_set_pos(params, params_cnt, list);
-        break;
-    case c_set_green:
-        command_set_green(params, params_cnt, list);
-        break;
-    case c_set_repeat_interval:
-        command_set_repeat_interval(params, params_cnt, list);
-        break;
-    case c_set_repeat_day:
-        command_set_repeat_day(params, params_cnt, list);
-        break;
-    case c_set_unrepeat:
-        command_set_unrepeat(params, params_cnt, list);
-        break;
-    default:
-        break;
+    if (params_cnt >= pcnt_backup) {
+        concat_params(1, params, &params_cnt);
+        load_backup(params[1], list);
     }
 }
 
 void todolist_main_loop(struct todolist *list)
 {
-    char cmd[max_cmd_len];
+    char cmd_str[max_cmd_len];
     char *params[max_params_cnt];
+    enum commands cmd;
     int params_cnt;
     params_array_init(params, sizeof(params) / sizeof(char *));
     do {
         show_list(list);
         
         show_command_prompt();
-        read_command(cmd, max_cmd_len);
-        parse_command(cmd, params, &params_cnt); 
+        read_command_str(cmd_str, max_cmd_len);
+        parse_command_str(cmd_str, params, &params_cnt); 
+        cmd = get_command_by_name(params[0]);
 
-        switch (cmd[0]) {
-        case c_add:
-            command_add(params, params_cnt, list);
+        switch (cmd) {
+        case c_quit:
             break;
-        case c_done:
-            command_done(params, params_cnt, list);
-            break;
-        case c_remove:
-            command_remove(params, params_cnt, list);
-            break;
-        case c_set:
-            command_set(cmd[1], params, params_cnt, list);
-            break;
-        case c_move:
-            command_move(params, params_cnt, list);
+        case c_help:
+            update_todolist_view(view_help, list);
+            show_help(); 
             break;
         case c_today_tasks:
             command_show_today_tasks(list);
@@ -720,19 +695,48 @@ void todolist_main_loop(struct todolist *list)
         case c_info:
             command_show_info(params, params_cnt, list);
             break;
-        case c_backup:
-            command_backup(cmd[1], params, params_cnt, list);
+        case c_add:
+            command_add(params, params_cnt, list);
             break;
-        case c_help:
-            update_todolist_view(view_help, list);
-            show_help(); 
+        case c_done:
+            command_done(params, params_cnt, list);
             break;
-        case c_quit:
+        case c_remove:
+            command_remove(params, params_cnt, list);
+            break;
+        case c_set_name:
+            command_rename(params, params_cnt, list);
+        case c_set_description:
+            command_set_description(params, params_cnt, list);
+            break;
+        case c_set_pos:
+            command_set_pos(params, params_cnt, list);
+            break;
+        case c_set_green:
+            command_set_green(params, params_cnt, list);
+            break;
+        case c_repeat_interval:
+            command_set_repeat_interval(params, params_cnt, list);
+            break;
+        case c_repeat_day:
+            command_set_repeat_day(params, params_cnt, list);
+            break;
+        case c_repeat_remove:
+            command_repeat_remove(params, params_cnt, list);
+            break;
+        case c_move:
+            command_move(params, params_cnt, list);
+            break;
+        case c_make_backup:
+            command_make_backup(params, params_cnt, list);
+            break;
+        case c_load_backup:
+            command_load_backup(params, params_cnt, list);
             break;
         default:
-            show_help(); 
+            unknown_command_error(params[0], list);
             break;
         }
-    } while (cmd[0] != c_quit);
+    } while (cmd != c_quit);
     params_array_free(params, sizeof(params) / sizeof(char *));
 }
