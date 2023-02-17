@@ -50,7 +50,7 @@ enum command_params_count {
     pcnt_backup              = 2
 };
 
-void read_command_str(char *cmd_str, int len);
+void read_command_str(char *cmd_str, int len, char *eof_flag);
 void parse_command_str(const char *cmd_str, char **params, int *parse_cnt);
 enum commands get_command_by_name(const char *cmd_name);
 void params_array_init(char **params, int size);

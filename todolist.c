@@ -741,6 +741,7 @@ void todolist_main_loop(struct todolist *list)
     char *params[max_params_cnt];
     enum commands cmd;
     int params_cnt;
+    char is_eof;
     params_array_init(params, sizeof(params) / sizeof(char *));
     do {
         if (!list->has_message)
@@ -749,7 +750,7 @@ void todolist_main_loop(struct todolist *list)
             list->has_message = 0;
         
         show_command_prompt();
-        read_command_str(cmd_str, max_cmd_len);
+        read_command_str(cmd_str, max_cmd_len, &is_eof);
         parse_command_str(cmd_str, params, &params_cnt); 
         cmd = get_command_by_name(params[0]);
 
@@ -818,9 +819,12 @@ void todolist_main_loop(struct todolist *list)
             command_load_backup(params, params_cnt, list);
             break;
         default:
-            unknown_command(params[0], list);
+            if (is_eof)
+                putchar('\n');
+            else
+                unknown_command(params[0], list);
             break;
         }
-    } while (cmd != c_quit);
+    } while (cmd != c_quit && !is_eof);
     params_array_free(params, sizeof(params) / sizeof(char *));
 }

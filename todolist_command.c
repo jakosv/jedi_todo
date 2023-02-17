@@ -28,7 +28,7 @@ const char *cmd_name[c_count] = {
     "bl"    /* load backup      */
 };
 
-void read_command_str(char *cmd_str, int len)
+void read_command_str(char *cmd_str, int len, char *eof_flag)
 {
     int c, i;
     i = 0;
@@ -39,6 +39,7 @@ void read_command_str(char *cmd_str, int len)
         i++;
     }
     cmd_str[i] = '\0';
+    *eof_flag = c == EOF;
 }
 
 void parse_command_str(const char *cmd_str, char **params, int *parse_cnt)
