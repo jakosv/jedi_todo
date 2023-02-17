@@ -281,6 +281,7 @@ static void print_description(const char *description)
 static void print_task_repeat_info(const struct task *task)
 {
     print_task_repeat_date(task);
+    putchar('\n');
     if (task->rep_days) {
         enum { week_days_cnt = 7 };
         const char *days[] = {
@@ -302,7 +303,6 @@ static void print_task_repeat_info(const struct task *task)
     } else if (task->rep_interval) {
         printf("Repeat interval: %d\n", task->rep_interval);
     }
-    putchar('\n');
 }
 
 void show_task_info(const struct task *task)
