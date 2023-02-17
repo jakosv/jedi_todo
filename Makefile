@@ -1,4 +1,3 @@
-CC = clang
 PROG = jedi_todo 
 CFLAGS = -Wall -g -ansi -pedantic
 OBJMODULES = todolist.o todolist_view.o todolist_command.o task_list.o \
