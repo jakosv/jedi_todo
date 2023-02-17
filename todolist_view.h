@@ -3,6 +3,7 @@
 
 #include "task_list.h"
 #include "project_list.h"
+#include "todolist_command.h"
 
 #include <stdio.h>
 
@@ -15,11 +16,7 @@ enum view_state {
     view_completed_tasks,
     view_projects,
     view_project_tasks,
-    view_project_completed_tasks,
-    view_help,
-    view_task_info,
-    view_project_info,
-    view_message
+    view_project_completed_tasks
 };
 
 
@@ -33,9 +30,13 @@ void show_project_completed_tasks(const struct task_list *lst,
 void show_projects(const struct project_list *lst);
 void show_task_info(const struct task *task);
 void show_project_info(const struct project *proj);
+void show_help();
 void show_command_prompt();
 void show_message(const char *msg);
 void show_error(const char *msg);
-void show_help();
+void show_command_info(enum commands cmd, const char *info);
+void show_unknown_command_message(const char *cmd);
+void show_list_only_command_error(enum commands cmd);
+void show_pos_range_error(const char *pos);
 
 #endif

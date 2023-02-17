@@ -15,6 +15,7 @@ void todolist_init(struct todolist *list)
     tl_init(&list->tasks);
     pl_init(&list->projects);
     list->view = view_today_tasks;
+    list->has_message = 0;
     storage_get_today_tasks(&list->tasks, &list->storage);
     storage_get_all_projects(&list->projects, &list->storage);
 }
@@ -171,28 +172,34 @@ static void remove_project(int pos, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
-static void rename_task(int pos, const char *name, 
+static int rename_task(int pos, const char *name, 
                                             struct todolist *list)
 {
     struct tl_item *task_item;
     struct task new_task;
     task_item = tl_get_item(pos, &list->tasks);
+    if (!task_item)
+        return 0;
     new_task = task_item->data;
     strlcpy(new_task.name, name, max_task_name_len);
     storage_set_task(task_item->id, &new_task, &list->storage); 
     update_todolist_view(list->view, list);
+    return 1;
 }
 
-static void rename_project(int pos, const char *name, 
+static int rename_project(int pos, const char *name, 
                                             struct todolist *list)
 {
     struct pl_item *proj_item;
     struct project proj;
     proj_item = pl_get_item(pos, &list->projects);
+    if (!proj_item)
+        return 0;
     proj = proj_item->data;
     strlcpy(proj.name, name, max_project_name_len);
     storage_set_project(proj_item->id, &proj, &list->storage); 
     update_todolist_view(list->view, list);
+    return 1;
 }
 
 static void set_task_description(int pos, const char *description, 
@@ -225,13 +232,19 @@ static void done_task(int pos, struct todolist *list)
     struct task task;
     task_item = tl_get_item(pos, &list->tasks);
     task = task_item->data;
-    task.done = task.done ? 0 : 1;
-    storage_set_task(task_item->id, &task, &list->storage); 
-    if (task.done && is_task_repeating(&task)) {
+    if (!task.done) {
+        if (is_task_repeating(&task)) {
+            struct task new_task;
+            new_task = task;
+            task_repeating_done(&new_task);
+            storage_add_task(&new_task, &list->storage);
+        }
+        task.done = 1;
+        task_unrepeat(&task);
+    } else {
         task.done = 0;
-        task.creation_time = get_next_repeat(&task);
-        storage_add_task(&task, &list->storage);
     }
+    storage_set_task(task_item->id, &task, &list->storage); 
     update_todolist_view(list->view, list);
 }
 
@@ -259,7 +272,7 @@ static void move_task_to_folder(int pos, char to, struct todolist *list)
     task_item = tl_get_item(pos, &list->tasks);
     new_task = task_item->data;
     if (is_task_repeating(&new_task)) {
-        new_task.creation_time = get_next_repeat(&new_task);
+        new_task.repeat_date = get_next_repeat(&new_task);
         storage_add_task(&new_task, &list->storage);
         task_unrepeat(&new_task);
     }
@@ -330,13 +343,14 @@ static void set_task_repeat_day(int pos, char day, struct todolist *list)
     update_todolist_view(list->view, list);
 }
 
-static void cancel_task_repeat(int pos, struct todolist *list)
+static void remove_task_repeat(int pos, struct todolist *list)
 {
     struct tl_item *task_item;
     struct task task;
     task_item = tl_get_item(pos, &list->tasks);
     task = task_item->data;
-    task_unrepeat(&task);
+    if (is_task_repeating(&task))
+        task_unrepeat(&task);
     storage_set_task(task_item->id, &task, &list->storage); 
     update_todolist_view(list->view, list);
 }
@@ -378,7 +392,7 @@ static void make_backup(const char *dest, struct todolist *list)
         show_error("Error: Unable to make a backup");
     else
         show_message("Backup completed");
-    update_todolist_view(view_message, list);
+    list->has_message = 1;
 }
 
 static void load_backup(const char *dest, struct todolist *list)
@@ -389,48 +403,119 @@ static void load_backup(const char *dest, struct todolist *list)
         show_error("Error: Unable to load backup");
     else
         show_message("Backup loading completed");
-    update_todolist_view(view_message, list);
+    list->has_message = 1;
+}
+
+static void todolist_command_error(const char *str, struct todolist *list)
+{
+    show_error(str);
+    list->has_message = 1;
+}
+
+static void todolist_command_info(enum commands cmd, const char *info, 
+                                                    struct todolist *list)
+{
+    show_command_info(cmd, info);
+    list->has_message = 1;
+}
+
+static void list_only_command_error(enum commands cmd, 
+                                                    struct todolist *list)
+{
+    show_list_only_command_error(cmd);
+    list->has_message = 1;
+}
+
+static void list_pos_range_error(const char *pos, struct todolist *list)
+{
+    show_pos_range_error(pos);
+    list->has_message = 1;
 }
 
 static void command_add(char **params, int params_cnt, 
                                                 struct todolist *list) 
 {
-    if (params_cnt >= pcnt_add) {
-        concat_params(1, params, &params_cnt);
-        if (list->view == view_projects)
-            add_project(params[1], list);
-        else
-            add_task(params[1], list);
+    if (params_cnt < pcnt_add) {
+        todolist_command_info(c_add, "[name]", list);
+        return;
+    }
+    concat_params(1, params, &params_cnt);
+    switch (list->view) {
+    case view_projects:
+        add_project(params[1], list);
+        break;
+    case view_today_tasks:
+    case view_all_tasks:
+    case view_week_tasks:
+    case view_project_tasks:
+        add_task(params[1], list);
+        break;
+    default:
+        list_only_command_error(c_add, list);
+        break;
     }
 }
 
 static void command_remove(char **params, int params_cnt, 
                                                     struct todolist *list) 
 {
-    if (params_cnt >= pcnt_remove) {
-        int pos; 
-        pos = param_to_num(params[1]) - list_view_start_pos;
-        if (list->view == view_projects) {
-            remove_tasks_from_project(pos, list);
-            remove_project(pos, list);
-        } else {
-            remove_task(pos, list);
-        }
+    int pos; 
+    if (params_cnt < pcnt_remove) {
+        todolist_command_info(c_remove, "[pos]", list);
+        return;
+    }
+    pos = param_to_num(params[1]) - list_view_start_pos;
+    switch (list->view) {
+    case view_projects:
+        remove_tasks_from_project(pos, list);
+        remove_project(pos, list);
+        break;
+    case view_today_tasks:
+    case view_all_tasks:
+    case view_week_tasks:
+    case view_project_tasks:
+    case view_completed_tasks:
+    case view_project_completed_tasks:
+        remove_task(pos, list);
+        break;
+    default:
+        list_only_command_error(c_remove, list);
+        break;
     }
 }
 
 static void command_rename(char **params, int params_cnt, 
                                                     struct todolist *list) 
 {
-    if (params_cnt >= pcnt_set_name) {
-        int pos; 
-        pos = param_to_num(params[1]) - list_view_start_pos;
-        concat_params(2, params, &params_cnt);
-        if (list->view == view_projects)
-            rename_project(pos, params[2], list);
-        else
-            rename_task(pos, params[2], list);
+    int pos, res; 
+    if (params_cnt < pcnt_set_name) {
+        todolist_command_info(c_set_name, "[position] [name]", list);
+        return;
     }
+    res = 0;
+    pos = param_to_num(params[1]);
+    if (!isdigit(params[1][0]) && !pos) {
+        todolist_command_info(c_set_name, "[position] [name]", list);
+        return;
+    }
+    pos -= list_view_start_pos;
+    concat_params(2, params, &params_cnt);
+    switch (list->view) {
+    case view_projects:
+        res = rename_project(pos, params[2], list);
+        break;
+    case view_today_tasks:
+    case view_all_tasks:
+    case view_week_tasks:
+    case view_project_tasks:
+        res = rename_task(pos, params[2], list);
+        break;
+    default:
+        list_only_command_error(c_remove, list);
+        break;
+    }
+    if (!res)
+        list_pos_range_error(params[1], list);
 }
 
 static void command_set_description(char **params, int params_cnt, 
@@ -546,7 +631,7 @@ static void command_repeat_remove(char **params, int params_cnt,
         pos = param_to_num(params[1]) - list_view_start_pos;
         if (list->view == view_projects)
             return;
-        cancel_task_repeat(pos, list);
+        remove_task_repeat(pos, list);
     }
 }
 
@@ -617,24 +702,19 @@ static void command_show_info(char **params, int params_cnt,
             pos = param_to_num(params[1]) - list_view_start_pos;
             if (list->view == view_projects) {
                 project_info(pos, list);
-                update_todolist_view(view_task_info, list);
+                list->has_message = 1;
             } else {
                 task_info(pos, list);
-                update_todolist_view(view_project_info, list);
+                list->has_message = 1;
             }
         }
     }
 } 
 
-static void unknown_command_error(const char *cmd, struct todolist *list)
+static void unknown_command(const char *cmd, struct todolist *list)
 {
-    enum { max_err_len = 2 * max_cmd_len };
-    char str[2 * max_cmd_len];
-    strlcpy(str, "Unknown command: \"", max_err_len);
-    strlcat(str, cmd, max_err_len);
-    strlcat(str, "\"\nEnter command \"h\" to view all commands", max_err_len);
-    show_error(str);
-    update_todolist_view(view_message, list);
+    show_unknown_command_message(cmd);
+    list->has_message = 1;
 }
 
 static void command_make_backup(char **params, int params_cnt, 
@@ -663,7 +743,10 @@ void todolist_main_loop(struct todolist *list)
     int params_cnt;
     params_array_init(params, sizeof(params) / sizeof(char *));
     do {
-        show_list(list);
+        if (!list->has_message)
+            show_list(list);
+        else
+            list->has_message = 0;
         
         show_command_prompt();
         read_command_str(cmd_str, max_cmd_len);
@@ -674,7 +757,7 @@ void todolist_main_loop(struct todolist *list)
         case c_quit:
             break;
         case c_help:
-            update_todolist_view(view_help, list);
+            list->has_message = 1;
             show_help(); 
             break;
         case c_today_tasks:
@@ -706,6 +789,7 @@ void todolist_main_loop(struct todolist *list)
             break;
         case c_set_name:
             command_rename(params, params_cnt, list);
+            break;
         case c_set_description:
             command_set_description(params, params_cnt, list);
             break;
@@ -734,7 +818,7 @@ void todolist_main_loop(struct todolist *list)
             command_load_backup(params, params_cnt, list);
             break;
         default:
-            unknown_command_error(params[0], list);
+            unknown_command(params[0], list);
             break;
         }
     } while (cmd != c_quit);

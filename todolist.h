@@ -8,6 +8,7 @@
 struct todolist {
     struct storage storage;
     enum view_state view;
+    char has_message;
     struct task_list tasks;
     struct project_list projects;
     project_id cur_project;

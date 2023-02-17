@@ -65,9 +65,18 @@ static void print_task_repeat_date(const struct task *task)
 {
     char str[date_str_size];
     time_t repeat;
-    repeat = task_repeat_date(task);
+    repeat = task->repeat_date;
     strftime(str, date_str_size, date_format, localtime(&repeat));
-    printf("Repeat: %s" COLOR_RESET, str);
+    printf("Repeat: %s", str);
+}
+
+static void print_task_creation_date(const struct task *task)
+{
+    char str[date_str_size];
+    time_t creation;
+    creation = task->creation_time;
+    strftime(str, date_str_size, date_format, localtime(&creation));
+    printf("Creation date: %s\n", str);
 }
 
 static void print_today_list_task(const struct task *task)
@@ -271,6 +280,7 @@ static void print_description(const char *description)
 
 static void print_task_repeat_info(const struct task *task)
 {
+    print_task_repeat_date(task);
     if (task->rep_days) {
         enum { week_days_cnt = 7 };
         const char *days[] = {
@@ -292,7 +302,6 @@ static void print_task_repeat_info(const struct task *task)
     } else if (task->rep_interval) {
         printf("Repeat interval: %d\n", task->rep_interval);
     }
-    print_task_repeat_date(task);
     putchar('\n');
 }
 
@@ -303,7 +312,11 @@ void show_task_info(const struct task *task)
     concat_titles(title, task_title_size, "Task: ", task->name);
     print_view_title(title);
     print_description(task->description);
-    print_task_repeat_info(task);
+    if (is_task_repeating(task))
+        print_task_repeat_info(task);
+    print_task_creation_date(task);
+    if (is_task_today(task) || !is_task_repeating(task))
+        printf("Task days: %ld\n", task_days(task));
     print_view_bottom();
 }
 
@@ -392,10 +405,48 @@ void show_help()
 
 void show_message(const char *msg)
 {
-    printf(COLOR_GREEN "%s\n" COLOR_RESET, msg);
+    printf("%s\n", msg);
 }
 
 void show_error(const char *msg)
 {
     printf(COLOR_RED "%s\n" COLOR_RESET, msg);
+}
+
+void show_command_info(enum commands cmd, const char *info)
+{
+    char str[2 * max_cmd_len];
+    strlcpy(str, cmd_name[cmd], sizeof(str));
+    strlcat(str, " ", sizeof(str));
+    strlcat(str, info, sizeof(str));
+    show_message(str);
+}
+
+void show_unknown_command_message(const char *cmd)
+{
+    char str[2 * max_cmd_len];
+    strlcpy(str, "Unknown command: \"", sizeof(str));
+    strlcat(str, cmd, sizeof(str));
+    strlcat(str, "\"\nEnter command \"", sizeof(str));
+    strlcat(str, cmd_name[c_help], sizeof(str));
+    strlcat(str, "\" to view all commands", sizeof(str));
+    show_message(str);
+}
+
+void show_list_only_command_error(enum commands cmd)
+{
+    char str[2 * max_cmd_len];
+    strlcpy(str, "\"", sizeof(str));
+    strlcat(str, cmd_name[cmd], sizeof(str));
+    strlcat(str, "\" command works only in tasks/projects list", sizeof(str));
+    show_error(str);
+}
+
+void show_pos_range_error(const char *pos)
+{
+    char str[2 * max_cmd_len];
+    strlcpy(str, "Position \"", sizeof(str));
+    strlcat(str, pos, sizeof(str));
+    strlcat(str, "\" is out of range", sizeof(str));
+    show_error(str);
 }
