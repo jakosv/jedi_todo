@@ -5,5 +5,5 @@ Terminal To-Do List application
 
 ```console
 $ make 
-$ ./main
+$ ./jedi_todo
 ```
