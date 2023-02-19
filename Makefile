@@ -1,7 +1,7 @@
 PROG = jedi_todo 
 CFLAGS = -Wall -g -ansi -pedantic
 OBJMODULES = todolist.o todolist_view.o todolist_command.o task_list.o \
-			 project_list.o task.o project.o storage.o database.o
+			 project_list.o task.o project.o storage.o database.o sutils.o
 
 .PHONY: clean 
 
