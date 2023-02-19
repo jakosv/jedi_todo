@@ -3,6 +3,7 @@
 #include "todolist_command.h"
 #include "task.h"
 #include "project.h"
+#include "sutils.h"
 
 #include <stdio.h>
 #include <string.h>

@@ -1,4 +1,6 @@
 #include "database.h"
+#include "sutils.h"
+
 #include <stdlib.h>
 #include <string.h>
 

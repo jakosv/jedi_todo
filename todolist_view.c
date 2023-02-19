@@ -4,6 +4,7 @@
 #include "project_list.h"
 #include "task.h"
 #include "project.h"
+#include "sutils.h"
 
 #include <string.h>
 #include <time.h>
