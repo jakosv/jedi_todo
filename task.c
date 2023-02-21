@@ -50,7 +50,7 @@ long task_days(const struct task *task)
     return days;
 }
 
-char is_task_repeating(const struct task *task)
+int is_task_repeating(const struct task *task)
 {
     return task->rep_days || task->rep_interval;
 }
@@ -83,10 +83,12 @@ time_t get_next_repeat(const struct task *task)
     return 0;
 }
 
-char is_task_today(const struct task *task)
+int is_task_today(const struct task *task)
 {
     time_t now;
     long today_date, task_date;
+    if (is_task_completed(task))
+        return 0;
     if (task->folder == tf_today)
         return 1;
     if (is_task_repeating(task)) {
@@ -98,8 +100,10 @@ char is_task_today(const struct task *task)
     return 0;
 }
 
-char is_task_week(const struct task *task)
+int is_task_week(const struct task *task)
 {
+    if (is_task_completed(task))
+        return 0;
     if (task->folder == tf_week || is_task_today(task)) {
         return 1;
     } else if (is_task_repeating(task)) {
@@ -118,7 +122,17 @@ char is_task_week(const struct task *task)
     return 0;
 }
 
-void task_repeating_done(struct task *task)
+int is_task_completed(const struct task *task)
+{
+    return task->done;
+}
+
+int is_task_in_project(project_id pid, const struct task *task)
+{
+    return task->has_project && task->pid == pid;
+}
+
+void task_complete_repeating(struct task *task)
 {
     task->creation_time = time(NULL);
     task->repeat_date = get_next_repeat(task);

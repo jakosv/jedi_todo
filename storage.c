@@ -130,38 +130,18 @@ void storage_get_all_tasks(struct task_list *tasks, struct storage *st)
     struct tl_item *tmp;
     task_id pos;
     for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (!tmp->data.done)
-            tl_add(pos, &tmp->data, tasks);
+        tl_add(pos, &tmp->data, tasks);
 }
 
-void storage_get_today_tasks(struct task_list *tasks, struct storage *st)
+void storage_get_tasks(int (*criteria)(const struct task*),
+                        struct task_list *tasks, struct storage *st)
 {
     struct tl_item *tmp;
     task_id pos;
     for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (!tmp->data.done && is_task_today(&tmp->data))
+        if ((*criteria)(&tmp->data))
             tl_add(pos, &tmp->data, tasks);
 }
-
-void storage_get_week_tasks(struct task_list *tasks, struct storage *st)
-{
-    struct tl_item *tmp;
-    task_id pos;
-    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (!tmp->data.done && is_task_week(&tmp->data))
-            tl_add(pos, &tmp->data, tasks);
-}
-
-void storage_get_completed_tasks(struct task_list *tasks, 
-                                                    struct storage *st)
-{
-    struct tl_item *tmp;
-    task_id pos;
-    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (tmp->data.done)
-            tl_add(pos, &tmp->data, tasks);
-}
-
 
 /*===== projects functions =====*/
 
@@ -209,7 +189,7 @@ void storage_delete_project(project_id id, struct storage *st)
     pl_remove(tmp, &st->projects); 
 }
 
-void storage_get_all_projects(struct project_list *projects, 
+void storage_get_projects(struct project_list *projects, 
                                                 struct storage *st)
 {
     struct pl_item *tmp;
@@ -222,29 +202,14 @@ void storage_get_all_projects(struct project_list *projects,
         pl_add(pos, &tmp->data, projects);
 }
 
-void storage_get_project_tasks(project_id pid, struct task_list *tasks, 
-                                                    struct storage *st)
+void storage_get_project_tasks(project_id pid, int completed,
+        struct task_list *tasks, struct storage *st)
 {
     struct tl_item *tmp;
     task_id pos;
     for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (!tmp->data.done && 
-            tmp->data.has_project && 
-            tmp->data.pid == pid)
-        {
-            tl_add(pos, &tmp->data, tasks);
-        }
-}
-
-void storage_get_project_completed_tasks(project_id pid, 
-                                struct task_list *tasks, struct storage *st)
-{
-    struct tl_item *tmp;
-    task_id pos;
-    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        if (tmp->data.done && 
-            tmp->data.has_project && 
-            tmp->data.pid == pid)
+        if (is_task_in_project(pid, &tmp->data) && 
+            completed == is_task_completed(&tmp->data))
         {
             tl_add(pos, &tmp->data, tasks);
         }

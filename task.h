@@ -30,12 +30,15 @@ void task_create(const char *name, enum task_folder folder,
                                                 struct task *new_task);
 long sec_to_days(time_t seconds);
 time_t days_to_sec(long days);
-char is_task_repeating(const struct task *task);
+int is_task_repeating(const struct task *task);
+int is_task_completed(const struct task *task);
 long task_days(const struct task *task);
 time_t get_next_repeat(const struct task *task);
-char is_task_today(const struct task *task);
-char is_task_week(const struct task *task);
-void task_repeating_done(struct task *task);
+int is_task_today(const struct task *task);
+int is_task_week(const struct task *task);
+int is_task_in_project(project_id pid, const struct task *task);
+int is_project_task_completed(project_id pid, const struct task *task);
+void task_complete_repeating(struct task *task);
 void task_unrepeat(struct task *task);
 void task_add_repeat_interval(int interval, int start_in, 
                                                     struct task *task);
