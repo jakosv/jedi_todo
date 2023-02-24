@@ -89,11 +89,13 @@ static void update_todolist_view(enum view_state view,
         break;
     case view_project_tasks:
         pid = pl_get_item(list->cur_project, &list->projects)->id;
-        storage_get_project_tasks(pid, 0, &list->tasks, &list->storage);
+        storage_get_project_tasks(pid, ptt_not_completed, &list->tasks, 
+                                                            &list->storage);
         break;
     case view_project_completed_tasks:
         pid = pl_get_item(list->cur_project, &list->projects)->id;
-        storage_get_project_tasks(pid, 1, &list->tasks, &list->storage);
+        storage_get_project_tasks(pid, ptt_completed, &list->tasks,
+                                                            &list->storage);
         break;
     default:
         break;
@@ -146,30 +148,6 @@ static void remove_task(int pos, struct todolist *list)
     id = tl_get_item(pos, &list->tasks)->id;
     storage_delete_task(id, &list->storage); 
     update_todolist_view(list->view, list);
-}
-
-static void remove_tasks_from_project(struct task_list *tasks, 
-                                                    struct todolist *list)
-{
-    struct tl_item *tmp;
-    tmp = tasks->first;
-    while (tmp) {
-        tmp->data.has_project = 0;
-        storage_set_task(tmp->id, &tmp->data, &list->storage);
-        tmp = tmp->next;
-    }
-}
-
-static void clear_project(int pos, struct todolist *list)
-{
-    project_id id;
-    struct task_list project_tasks;
-    id = pl_get_item(pos, &list->projects)->id;
-    tl_init(&project_tasks);
-    storage_get_project_tasks(id, 0, &project_tasks, &list->storage); 
-    remove_tasks_from_project(&project_tasks, list);
-    storage_get_project_tasks(id, 1, &project_tasks, &list->storage); 
-    remove_tasks_from_project(&project_tasks, list);
 }
 
 static void remove_project(int pos, struct todolist *list)
@@ -475,7 +453,6 @@ static void command_remove(char **params, int params_cnt,
     pos = param_to_num(params[1]) - list_view_start_pos;
     switch (list->view) {
     case view_projects:
-        clear_project(pos, list);
         remove_project(pos, list);
         break;
     case view_today_tasks:

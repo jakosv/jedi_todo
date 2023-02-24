@@ -97,10 +97,18 @@ void storage_add_task(struct task *new_task, struct storage *st)
     tl_add(new_task_id, new_task, &st->tasks);
 }
 
-void storage_set_task(task_id id, struct task *new_task, 
+static void update_task_record(task_id id, struct task *task, 
                                                     struct storage *st)
 {
     struct record rec;
+    db_fetch_record(id, &rec, &st->db);
+    rec.data.task = *task;
+    db_update_record(id, &rec, &st->db);
+}
+
+void storage_set_task(task_id id, struct task *new_task, 
+                                                    struct storage *st)
+{
     struct tl_item *task_item;
     if (!st) {
         fprintf(stderr, "lodolist_set_task(): passed NULL");
@@ -108,9 +116,7 @@ void storage_set_task(task_id id, struct task *new_task,
     }
     task_item = tl_get_item(id, &st->tasks);
     task_item->data = *new_task;
-    db_fetch_record(task_item->id, &rec, &st->db);
-    rec.data.task = *new_task;
-    db_update_record(task_item->id, &rec, &st->db);
+    update_task_record(task_item->id, new_task, st);
 }
 
 void storage_delete_task(task_id id, struct storage *st)
@@ -177,6 +183,50 @@ void storage_set_project(project_id id, struct project *new_project,
     db_update_record(project_item->id, &rec, &st->db);
 }
 
+static void remove_tasks_from_project(struct task_list *tasks, 
+                                                    struct storage *st)
+{
+    struct tl_item *tmp;
+    tmp = tasks->first;
+    while (tmp) {
+        tmp->data.has_project = 0;
+        storage_set_task(tmp->id, &tmp->data, st);
+        tmp = tmp->next;
+    }
+}
+
+static void clear_project(project_id id, struct storage *stor)
+{
+    struct task_list project_tasks;
+    tl_init(&project_tasks);
+    storage_get_project_tasks(id, ptt_none, &project_tasks, stor); 
+    remove_tasks_from_project(&project_tasks, stor);
+}
+
+static void update_project_tasks(project_id old_id, project_id new_id,
+                                                        struct storage *st)
+{
+    struct task_list tasks;
+    struct tl_item *task;
+    tl_init(&tasks);
+    storage_get_project_tasks(old_id, ptt_none, &tasks, st);
+    for (task = tasks.first; task; task = task->next) {
+        task->data.pid = new_id;
+        storage_set_task(task->id, &task->data, st);
+    }
+}
+
+static void update_projects(project_id start_pos, struct storage *st)
+{
+    struct pl_item *proj;
+    project_id pos;
+    pos = start_pos;
+    for (proj = pl_get_item(pos, &st->projects); proj; proj = proj->next) {
+        update_project_tasks(pos + 1, pos, st); 
+        pos++;
+    }
+}
+
 void storage_delete_project(project_id id, struct storage *st)
 {
     struct pl_item *tmp; 
@@ -184,9 +234,11 @@ void storage_delete_project(project_id id, struct storage *st)
         fprintf(stderr, "lodolist_delete_project(): passed NULL");
         exit(1);
     }
+    clear_project(id, st);
     tmp = pl_get_item(id, &st->projects); 
     db_delete_record(tmp->id, &st->db);
     pl_remove(tmp, &st->projects); 
+    update_projects(id, st);
 }
 
 void storage_get_projects(struct project_list *projects, 
@@ -202,14 +254,17 @@ void storage_get_projects(struct project_list *projects,
         pl_add(pos, &tmp->data, projects);
 }
 
-void storage_get_project_tasks(project_id pid, int completed,
-        struct task_list *tasks, struct storage *st)
+void storage_get_project_tasks(project_id pid, 
+                            enum project_task_type pt_type, 
+                            struct task_list *tasks, struct storage *st)
 {
     struct tl_item *tmp;
     task_id pos;
     for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
         if (is_task_in_project(pid, &tmp->data) && 
-            completed == is_task_completed(&tmp->data))
+           ((pt_type == ptt_completed && is_task_completed(&tmp->data)) ||
+           (pt_type == ptt_not_completed && !is_task_completed(&tmp->data)) ||
+           (pt_type == ptt_none)))
         {
             tl_add(pos, &tmp->data, tasks);
         }

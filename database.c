@@ -119,7 +119,7 @@ void db_close(struct database *db)
 }
 
 static void write_record(record_pos pos, struct record *new_record, 
-                                                                FILE *file)
+                                                            FILE *file)
 {
     long bytes_offset;
     bytes_offset = pos * sizeof(struct record);

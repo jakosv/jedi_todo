@@ -13,6 +13,8 @@ struct storage {
     struct project_list projects;
 };
 
+enum project_task_type { ptt_not_completed, ptt_completed, ptt_none };
+
 void storage_init(struct storage *st);
 void storage_free(struct storage *st);
 
@@ -35,6 +37,7 @@ void storage_set_project(project_id id, struct project *new_project,
 void storage_delete_project(project_id id, struct storage *st);
 void storage_get_projects(struct project_list *projects, 
                                                     struct storage *st);
-void storage_get_project_tasks(project_id pid, int completed, 
+void storage_get_project_tasks(project_id pid, 
+                            enum project_task_type pt_type, 
                             struct task_list *tasks, struct storage *st);
 #endif
