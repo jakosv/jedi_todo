@@ -67,18 +67,30 @@ static char next_repeat_day(time_t date, char rep_days)
     return -1;
 }
 
+static time_t next_repeat_interval(time_t last_repeat, int interval)
+{
+    long today, next_date, last_date;
+    today = sec_to_days(time(NULL));
+    last_date = sec_to_days(last_repeat);
+    next_date = 
+        last_date + ((today - last_date) / interval + 1) * interval;
+    return days_to_sec(next_date);
+}
+
 time_t get_next_repeat(const struct task *task)
 {
+    time_t today;
+    today = time(NULL);
     if (task->rep_days) {
         char day, c_wday, days_diff;
         time_t date;
-        date = task->repeat_date + days_to_sec(1);
+        date = today + days_to_sec(1);
         c_wday = localtime(&date)->tm_wday;
         day = next_repeat_day(date, task->rep_days);
         days_diff = (day - c_wday + 7) % 7;
         return date + days_to_sec(days_diff); 
     } else if (task->rep_interval) {
-        return task->repeat_date + days_to_sec(task->rep_interval);
+        return next_repeat_interval(task->repeat_date, task->rep_interval);
     }
     return 0;
 }
@@ -125,6 +137,11 @@ int is_task_week(const struct task *task)
 int is_task_completed(const struct task *task)
 {
     return task->done;
+}
+
+int is_task_not_completed(const struct task *task)
+{
+    return !is_task_completed(task);
 }
 
 int is_task_in_project(project_id pid, const struct task *task)

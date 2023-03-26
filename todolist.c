@@ -76,7 +76,8 @@ static void update_todolist_view(enum view_state view,
         storage_get_tasks(&is_task_today, &list->tasks, &list->storage);
         break;
     case view_all_tasks:
-        storage_get_all_tasks(&list->tasks, &list->storage);
+        storage_get_tasks(&is_task_not_completed, &list->tasks, 
+                                                            &list->storage);
         break;
     case view_week_tasks:
         storage_get_tasks(&is_task_week, &list->tasks, &list->storage);

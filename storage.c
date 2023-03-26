@@ -131,14 +131,6 @@ void storage_delete_task(task_id id, struct storage *st)
     tl_remove(tmp, &st->tasks); 
 }
 
-void storage_get_all_tasks(struct task_list *tasks, struct storage *st)
-{
-    struct tl_item *tmp;
-    task_id pos;
-    for (tmp = st->tasks.first, pos = 0; tmp; tmp = tmp->next, pos++)
-        tl_add(pos, &tmp->data, tasks);
-}
-
 void storage_get_tasks(int (*criteria)(const struct task*),
                         struct task_list *tasks, struct storage *st)
 {

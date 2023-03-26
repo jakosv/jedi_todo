@@ -32,6 +32,7 @@ long sec_to_days(time_t seconds);
 time_t days_to_sec(long days);
 int is_task_repeating(const struct task *task);
 int is_task_completed(const struct task *task);
+int is_task_not_completed(const struct task *task);
 long task_days(const struct task *task);
 time_t get_next_repeat(const struct task *task);
 int is_task_today(const struct task *task);

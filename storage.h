@@ -26,7 +26,6 @@ void storage_add_task(struct task *new_task, struct storage *st);
 void storage_set_task(task_id id, struct task *new_task, 
                                                 struct storage *st);
 void storage_delete_task(task_id id, struct storage *st);
-void storage_get_all_tasks(struct task_list *tasks, struct storage *st);
 void storage_get_tasks(int (*criteria)(const struct task*), 
                             struct task_list *tasks, struct storage *st);
 /*===== projects functions =====*/
