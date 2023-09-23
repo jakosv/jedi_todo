@@ -1,15 +1,37 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include "todolist.h"
+#include "client.h"
+#include "server.h"
 
-
-int main()
+static void usage(const char *progname)
 {
-    struct todolist list;
+    printf("usage: %s [-sc] [ip] [port]\n", progname);
+}
 
-    todolist_init(&list);
+int main(int argc, char **argv)
+{
+    if (argc > 3) {
+        int port;
 
-    todolist_main_loop(&list);
+        port = atoi(argv[3]);
 
-    todolist_destroy(&list);
+        if (strcmp(argv[1], "-c") == 0) {
+            client_connect(argv[2], port); 
+        } else
+        if (strcmp(argv[1], "-s") == 0) {
+            server_start(argv[2], port); 
+        } else {
+            usage(argv[0]);
+        }
+    } else {
+        struct todolist list;
+
+        todolist_init(&list);
+        todolist_main_loop(&list);
+        todolist_destroy(&list);
+    }
 
     return 0;
 }

@@ -736,6 +736,7 @@ void todolist_main_loop(struct todolist *list)
             list->has_message = 0;
         
         show_command_prompt();
+        fflush(stdout);
         read_command_str(cmd_str, max_cmd_len, &is_eof);
         parse_command_str(cmd_str, params, &params_cnt); 
         cmd = get_command_by_name(params[0]);
@@ -811,6 +812,7 @@ void todolist_main_loop(struct todolist *list)
                 unknown_command(params[0], list);
             break;
         }
+        fflush(stdout);
     } while (cmd != c_quit && !is_eof);
     params_array_free(params, sizeof(params) / sizeof(char *));
 }
