@@ -40,7 +40,7 @@ static void server_loop(int ls)
         fd = accept(ls, (struct sockaddr*)&addr, &addrlen);
         if (fd == -1) {
             perror("accept");
-            continue;
+            exit(1);
         }
 
         pid = fork();
