@@ -60,7 +60,7 @@ static void server_loop(int ls)
 
 void server_start(const char *ip, int port)
 {
-    int s, ok, res;
+    int s, ok, res, opt;
     struct sockaddr_in addr;
 
     addr.sin_family = AF_INET;
@@ -76,6 +76,9 @@ void server_start(const char *ip, int port)
         perror("socket");
         exit(1);
     }
+
+    opt = 1;
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, opt, sizeof(opt)); 
 
     res = bind(s, (struct sockaddr*)&addr, sizeof(addr));
     if (res == -1) {
