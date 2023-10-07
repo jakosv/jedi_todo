@@ -218,7 +218,7 @@ int db_fetch_all_records(struct record **records, unsigned size,
     }
     for (i = 0, num = 0; i < db->records_count; i++) {
         if (!all_records[i].is_deleted) {
-            (*records)[num] = all_records[i];
+            memcpy(*records + num, all_records + i, sizeof(struct record));
             num++;
             if (num >= size)
                 break;

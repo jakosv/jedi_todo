@@ -2,6 +2,7 @@
 #include "task.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 void tl_init(struct task_list *lst)
 {
@@ -30,7 +31,7 @@ void tl_add(task_id id, struct task *new_task, struct task_list *lst)
 {
     struct tl_item *tmp;
     tmp = malloc(sizeof(struct tl_item));
-    tmp->data = *new_task;
+    memcpy(&tmp->data, new_task, sizeof(struct task));
     tmp->next = NULL;
     tmp->prev = NULL;
     tmp->id = id;

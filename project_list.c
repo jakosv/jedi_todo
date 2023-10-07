@@ -2,6 +2,7 @@
 #include "project.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 void pl_init(struct project_list *lst)
 {
@@ -31,7 +32,7 @@ void pl_add(project_id id, struct project *new_project,
 {
     struct pl_item *tmp;
     tmp = malloc(sizeof(struct pl_item));
-    tmp->data = *new_project;
+    memcpy(&tmp->data, new_project, sizeof(struct project));
     tmp->next = NULL;
     tmp->prev = NULL;
     tmp->id = id;
