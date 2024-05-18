@@ -190,10 +190,6 @@ void task_update_repeat_days(char new_day, struct task *task)
         char today_wday;
         today_wday = localtime(&now)->tm_wday;
         days_diff = (new_day - today_wday + 7) % 7;
-        /*
-        prev_date = sec_to_day_number(date);
-        today_date = sec_to_day_number(now);
-        */
         prev_date = sec_to_days(date);
         today_date = sec_to_days(now);
         new_date = today_date + days_diff;
