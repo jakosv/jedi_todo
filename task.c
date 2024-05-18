@@ -27,14 +27,17 @@ void task_create(const char *name, enum task_folder folder,
     strlcpy(new_task->name, name, max_task_name_len); 
 }
 
-long sec_to_days(time_t seconds)
+long sec_to_days(time_t secs)
 {
-    return seconds / (60 * 60 * 24);
+    secs += localtime(&secs)->tm_gmtoff;
+    return secs / (60 * 60 * 24);
 }
 
 time_t days_to_sec(long days)
 {
-    return days * 24 * 60 * 60;
+    time_t secs = days * 24 * 60 * 60;
+    secs -= localtime(&secs)->tm_gmtoff;
+    return secs;
 }
 
 long task_days(const struct task *task)
@@ -187,6 +190,10 @@ void task_update_repeat_days(char new_day, struct task *task)
         char today_wday;
         today_wday = localtime(&now)->tm_wday;
         days_diff = (new_day - today_wday + 7) % 7;
+        /*
+        prev_date = sec_to_day_number(date);
+        today_date = sec_to_day_number(now);
+        */
         prev_date = sec_to_days(date);
         today_date = sec_to_days(now);
         new_date = today_date + days_diff;
